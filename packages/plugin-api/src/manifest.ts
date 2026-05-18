@@ -97,6 +97,13 @@ export interface ShellConfig {
   readonly origin?: string;
   /** Initial bundle budget for the shell alone (no MFEs mounted). */
   readonly budgetBytes?: number;
+  /**
+   * Host-specific shared singletons (e.g. `react-router-dom`). Framework
+   * baseline singletons (`react`, `react-dom`) belong to the framework
+   * adapter's `defaultShared`. App-wide singletons (like `@devnexus/shared`)
+   * belong on `MFKitConfig.shared`. This is for shell-only host deps.
+   */
+  readonly shared?: SharedDependencyMap;
 }
 
 /**
