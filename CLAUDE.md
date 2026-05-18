@@ -10,7 +10,7 @@ Framework for polyglot Module Federation — scaffolder + runtime + plugin syste
 packages/
   plugin-api/   @mfkit/plugin-api   types-only contract (sole runtime export: MFKIT_CONFIG_VERSION)
   kit/          @mfkit/kit          runtime — defineConfig/defineMFE, vite/, healing/, react/, turbo/, types/
-  codemods/     @mfkit/codemods     CLI + migration registry skeleton; zero migrations registered
+  codemods/     @mfkit/codemods     version-manifest format + in-memory registry + mfkit-migrate CLI; zero codemods registered (v0.3+)
 examples/       empty (Phase 2)
 ```
 
@@ -22,7 +22,7 @@ examples/       empty (Phase 2)
 - Step 6 — `<MFKitOutlet>` in `@mfkit/kit/react`: **done** — outlet + `MFKitProvider` + slot props; load/mount routed through `runWithHealing`; `loadRemote` injected (no MF runtime dep); pure controller covered by `tests/react/controller.test.ts`
 - Step 9 — Turbo pipeline generation (`@mfkit/kit/turbo`): **done** — `generateTurboConfig(manifest, opts?)` returns the JSON shape; reads `<path>/package.json` for each shell + MFE to learn npm names (manifest carries `path`, not `name`); emits base task block + `<shell-pkg>#dev` that `dependsOn` every `<mfe-pkg>#dev`; pure, no file I/O — consumers serialize/write
 - Step 8 — federated remote type generation (`@mfkit/kit/types`): **done** — `generateRemoteTypes(manifest, opts?)` is a pure manifest→string deriver emitting `declare module "<name>/<expose>"` blocks typed as `MFEDefinition`; `writeRemoteTypes` persists with an unchanged-skip guard; `watchRemoteTypes` is a thin fs.watch wrapper that takes a consumer `reload()` so kit never parses `mfkit.config.ts` itself. Default out path `.mfkit/generated/remotes.d.ts`. Subpath is pure node — enforced by `tests/vite/subpath-isolation.test.ts`
-- Step 10 — codemods scaffold: skeleton present, no migrations
+- Step 10 — codemods scaffold (`@mfkit/codemods`): **done** — `CodemodManifest` with the single-step `toVersion === fromVersion + 1` invariant, in-memory `registerCodemod` / `listCodemods` / `planMigration` registry that refuses gaps and ambiguity, and a `mfkit-migrate` CLI with `list` / `plan` / `up [--dry-run]` subcommands wired end-to-end. Zero codemods registered — first real migration lands v0.3+. Tests in `packages/codemods/tests/{registry,cli}.test.ts`
 - Steps 3, 5 — DevNexus integration: blocked on DevNexus repo
 
 ## Load-bearing invariants

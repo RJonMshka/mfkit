@@ -1,5 +1,17 @@
-// @mfkit/codemods — Phase 1 Step 10 fills this with the version-manifest
-// schema and the codemod registry. No codemods are registered yet; that work
-// begins in v0.3+ when there is a real v0.1 → v0.2 migration to author.
+// @mfkit/codemods — public surface.
+//
+// Phase 1 (Step 10) ships the version-manifest format and registry only.
+// Zero codemods are registered; the first real migration lands in v0.3+
+// when there is a v0.1 → v0.2 schema change to author.
 
-export {};
+export {
+  __resetRegistry,
+  CodemodRegistryError,
+  listCodemods,
+  planMigration,
+  registerCodemod,
+  type CodemodManifest,
+  type MigrationContext,
+  type MigrationLogger,
+  type MigrationResult,
+} from "./registry.js";

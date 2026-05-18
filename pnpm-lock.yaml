@@ -30,6 +30,9 @@ importers:
         specifier: workspace:*
         version: link:../plugin-api
     devDependencies:
+      '@types/node':
+        specifier: ^20.0.0
+        version: 20.19.41
       tsup:
         specifier: ^8.4.0
         version: 8.5.1(postcss@8.5.14)(typescript@5.9.3)
