@@ -71,3 +71,22 @@ describe("dist/index.js and dist/healing.js do not pull React", () => {
     expect(src).not.toMatch(/from\s*["']react-dom["']/);
   });
 });
+
+describe("dist/turbo.js subpath isolation", () => {
+  it("does not eagerly import vite, framework plugins, react, or @module-federation/vite", () => {
+    const src = read("turbo.js");
+    for (const peer of [
+      ...FRAMEWORK_PEERS,
+      "vite",
+      "@module-federation/vite",
+      "react",
+      "react-dom",
+    ]) {
+      const importLine = new RegExp(
+        String.raw`(^|\s)import[^;]*from\s*["']${peer.replace(/[/-]/g, "\\$&")}["']`,
+        "m",
+      );
+      expect(src).not.toMatch(importLine);
+    }
+  });
+});

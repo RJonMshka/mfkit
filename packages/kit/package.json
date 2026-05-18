@@ -24,6 +24,10 @@
     "./healing": {
       "types": "./dist/healing.d.ts",
       "import": "./dist/healing.js"
+    },
+    "./turbo": {
+      "types": "./dist/turbo.d.ts",
+      "import": "./dist/turbo.js"
     }
   },
   "files": ["dist", "README.md", "LICENSE"],
