@@ -19,7 +19,7 @@ examples/       empty (Phase 2)
 - Steps 1, 2 — plugin-api surface + `defineConfig`/`defineMFE` with valibot: **done**
 - Step 4 — Vite config generation (`@mfkit/kit/vite`, framework adapters): **done**
 - Step 7 — Self-healing primitives (`@mfkit/kit/healing`): **done** — strategies, runner, quarantine registry, version check, manifest cache
-- Step 6 — `<MFKitOutlet>` in `@mfkit/kit/react`: **stub** (`export {}`)
+- Step 6 — `<MFKitOutlet>` in `@mfkit/kit/react`: **done** — outlet + `MFKitProvider` + slot props; load/mount routed through `runWithHealing`; `loadRemote` injected (no MF runtime dep); pure controller covered by `tests/react/controller.test.ts`
 - Steps 8 (federated remote types) and 9 (Turbo gen): not started
 - Step 10 — codemods scaffold: skeleton present, no migrations
 - Steps 3, 5 — DevNexus integration: blocked on DevNexus repo
