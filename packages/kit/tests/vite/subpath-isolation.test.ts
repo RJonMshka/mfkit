@@ -90,3 +90,22 @@ describe("dist/turbo.js subpath isolation", () => {
     }
   });
 });
+
+describe("dist/types.js subpath isolation", () => {
+  it("does not eagerly import vite, framework plugins, react, or @module-federation/vite", () => {
+    const src = read("types.js");
+    for (const peer of [
+      ...FRAMEWORK_PEERS,
+      "vite",
+      "@module-federation/vite",
+      "react",
+      "react-dom",
+    ]) {
+      const importLine = new RegExp(
+        String.raw`(^|\s)import[^;]*from\s*["']${peer.replace(/[/-]/g, "\\$&")}["']`,
+        "m",
+      );
+      expect(src).not.toMatch(importLine);
+    }
+  });
+});

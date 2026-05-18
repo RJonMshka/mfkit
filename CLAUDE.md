@@ -9,7 +9,7 @@ Framework for polyglot Module Federation — scaffolder + runtime + plugin syste
 ```
 packages/
   plugin-api/   @mfkit/plugin-api   types-only contract (sole runtime export: MFKIT_CONFIG_VERSION)
-  kit/          @mfkit/kit          runtime — defineConfig/defineMFE, vite/, healing/, react/, turbo/
+  kit/          @mfkit/kit          runtime — defineConfig/defineMFE, vite/, healing/, react/, turbo/, types/
   codemods/     @mfkit/codemods     CLI + migration registry skeleton; zero migrations registered
 examples/       empty (Phase 2)
 ```
@@ -21,14 +21,14 @@ examples/       empty (Phase 2)
 - Step 7 — Self-healing primitives (`@mfkit/kit/healing`): **done** — strategies, runner, quarantine registry, version check, manifest cache
 - Step 6 — `<MFKitOutlet>` in `@mfkit/kit/react`: **done** — outlet + `MFKitProvider` + slot props; load/mount routed through `runWithHealing`; `loadRemote` injected (no MF runtime dep); pure controller covered by `tests/react/controller.test.ts`
 - Step 9 — Turbo pipeline generation (`@mfkit/kit/turbo`): **done** — `generateTurboConfig(manifest, opts?)` returns the JSON shape; reads `<path>/package.json` for each shell + MFE to learn npm names (manifest carries `path`, not `name`); emits base task block + `<shell-pkg>#dev` that `dependsOn` every `<mfe-pkg>#dev`; pure, no file I/O — consumers serialize/write
-- Step 8 — federated remote type generation: not started
+- Step 8 — federated remote type generation (`@mfkit/kit/types`): **done** — `generateRemoteTypes(manifest, opts?)` is a pure manifest→string deriver emitting `declare module "<name>/<expose>"` blocks typed as `MFEDefinition`; `writeRemoteTypes` persists with an unchanged-skip guard; `watchRemoteTypes` is a thin fs.watch wrapper that takes a consumer `reload()` so kit never parses `mfkit.config.ts` itself. Default out path `.mfkit/generated/remotes.d.ts`. Subpath is pure node — enforced by `tests/vite/subpath-isolation.test.ts`
 - Step 10 — codemods scaffold: skeleton present, no migrations
 - Steps 3, 5 — DevNexus integration: blocked on DevNexus repo
 
 ## Load-bearing invariants
 
 1. **`@mfkit/plugin-api` is types-only.** Sole runtime export is `MFKIT_CONFIG_VERSION = 1`. No schemas, no helper functions with bodies. Validation lives in kit. Breaking the surface bumps the version and requires a codemod registration.
-2. **`@mfkit/kit` peer dependencies are optional.** `vite`, `@module-federation/vite`, `react`, `react-dom`, and every framework Vite plugin are optional peers. Subpath entries (`/vite`, `/react`, `/healing`, `/turbo`) must be tree-shakable in isolation — a Svelte-only consumer must not have to install React; `/turbo` is pure node (no bundler/UI imports). Enforced by `tests/vite/subpath-isolation.test.ts`.
+2. **`@mfkit/kit` peer dependencies are optional.** `vite`, `@module-federation/vite`, `react`, `react-dom`, and every framework Vite plugin are optional peers. Subpath entries (`/vite`, `/react`, `/healing`, `/turbo`, `/types`) must be tree-shakable in isolation — a Svelte-only consumer must not have to install React; `/turbo` and `/types` are pure node (no bundler/UI imports). Enforced by `tests/vite/subpath-isolation.test.ts`.
 3. **Manifest is the single source of truth.** `mfkit.config.ts` → Vite configs, Turbo pipelines, route maps, remote `.d.ts`. Hand-edits to generated artifacts are escape hatches; a feature needing a second source of truth gets redesigned.
 4. **Convention with smart inference, never enforcement.** Defaults fill in; user-supplied values always win; what was inferred is logged once at dev startup (see `src/vite/inference-log.ts`).
 5. **Self-healing is runtime, pluggable, forgiving by default.** Every "what happens on failure" routes through `HealingStrategy`. Throwing from kit runtime is a bug unless the active strategy chose `{ action: "fail" }`.

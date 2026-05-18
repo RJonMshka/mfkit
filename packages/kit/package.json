@@ -28,6 +28,10 @@
     "./turbo": {
       "types": "./dist/turbo.d.ts",
       "import": "./dist/turbo.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js"
     }
   },
   "files": ["dist", "README.md", "LICENSE"],

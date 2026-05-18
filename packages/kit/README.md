@@ -10,6 +10,8 @@ import { defineConfig, defineMFE } from "@mfkit/kit";
 import { mfkitVite }              from "@mfkit/kit/vite";
 import { MFKitOutlet }            from "@mfkit/kit/react";
 import { defaultHealing }         from "@mfkit/kit/healing";
+import { generateTurboConfig }    from "@mfkit/kit/turbo";
+import { generateRemoteTypes }    from "@mfkit/kit/types";
 ```
 
 Status: alpha. Phase 1 fills each entry across Steps 2 / 4 / 6 / 7.

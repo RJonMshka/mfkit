@@ -7,6 +7,7 @@ export default defineConfig({
     react: "src/react.ts",
     healing: "src/healing.ts",
     turbo: "src/turbo.ts",
+    types: "src/types.ts",
     "vite-adapters/react": "src/vite/vite-adapters/react.ts",
     "vite-adapters/svelte": "src/vite/vite-adapters/svelte.ts",
     "vite-adapters/vue": "src/vite/vite-adapters/vue.ts",
