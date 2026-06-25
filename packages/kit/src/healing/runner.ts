@@ -11,11 +11,7 @@
 //   4. A safety net forces quarantine once the attempt counter exceeds
 //      strategy.maxAttempts so a misbehaving strategy can't loop forever.
 
-import type {
-  HealingDecision,
-  HealingStrategy,
-  MFEManifestEntry,
-} from "@mfkit/plugin-api";
+import type { HealingDecision, HealingStrategy, MFEManifestEntry } from "@mfkit/plugin-api";
 
 import type { QuarantineRegistry } from "./quarantine.js";
 
@@ -57,19 +53,15 @@ export class MFEQuarantinedError extends Error {
   }
 }
 
-export async function runWithHealing<T>(
-  opts: RunWithHealingOptions<T>,
-): Promise<T> {
+export async function runWithHealing<T>(opts: RunWithHealingOptions<T>): Promise<T> {
   const { op, entry, kind, strategy, registry, signal, onRetry } = opts;
 
   if (registry?.isQuarantined(entry.name)) {
-    const reason =
-      registry.snapshot().get(entry.name)?.reason ?? "already quarantined";
+    const reason = registry.snapshot().get(entry.name)?.reason ?? "already quarantined";
     throw new MFEQuarantinedError(entry.name, reason);
   }
 
-  const handler =
-    kind === "load" ? strategy.onLoadError : strategy.onMountError;
+  const handler = kind === "load" ? strategy.onLoadError : strategy.onMountError;
 
   for (let attempt = 1; ; attempt++) {
     if (signal?.aborted) throw abortError(signal);

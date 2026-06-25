@@ -2,18 +2,10 @@
 // a remote loader, a default healing strategy, and a shared quarantine
 // registry. Outlets read these via context; each can override per-instance.
 
-import { createContext, useContext, useMemo, type ReactElement, type ReactNode } from "react";
-
-import type {
-  HealingStrategy,
-  MFEManifestEntry,
-} from "@mfkit/plugin-api";
-
+import type { HealingStrategy, MFEManifestEntry } from "@mfkit/plugin-api";
+import { createContext, type ReactElement, type ReactNode, useContext, useMemo } from "react";
+import { createQuarantineRegistry, type QuarantineRegistry } from "../healing/quarantine.js";
 import { forgivingStrategy } from "../healing/strategies.js";
-import {
-  createQuarantineRegistry,
-  type QuarantineRegistry,
-} from "../healing/quarantine.js";
 
 import type { LoadRemote } from "./types.js";
 

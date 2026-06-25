@@ -1,6 +1,5 @@
-import vue from "@vitejs/plugin-vue";
-
 import type { FrameworkAdapter } from "@mfkit/plugin-api";
+import vue from "@vitejs/plugin-vue";
 
 const adapter: FrameworkAdapter = {
   id: "vue",

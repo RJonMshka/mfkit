@@ -1,16 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  MFKIT_CONFIG_VERSION,
-  type FrameworkAdapter,
-  type MFKitConfig,
-} from "../../src/index.js";
-import {
-  buildRemotesMap,
-  deriveMFE,
-  deriveShell,
-  findMFE,
-} from "../../src/vite/derive.js";
+import { type FrameworkAdapter, MFKIT_CONFIG_VERSION, type MFKitConfig } from "../../src/index.js";
+import { buildRemotesMap, deriveMFE, deriveShell, findMFE } from "../../src/vite/derive.js";
 
 // ─── Fixtures ───────────────────────────────────────────────────────────────
 
@@ -51,9 +42,7 @@ describe("findMFE", () => {
   });
 
   it("throws with known names listed when not found", () => {
-    expect(() => findMFE(baseConfig, "missing")).toThrow(
-      /No MFE named "missing".*"mfe_a"/s,
-    );
+    expect(() => findMFE(baseConfig, "missing")).toThrow(/No MFE named "missing".*"mfe_a"/s);
   });
 });
 
@@ -80,16 +69,12 @@ describe("deriveMFE port resolution", () => {
   it("auto-assigns a port from the hash range when no default exists", () => {
     const cfg: MFKitConfig = {
       ...baseConfig,
-      mfes: [
-        { name: "mfe_lit", framework: "lit", path: "apps/lit", route: "/x" },
-      ],
+      mfes: [{ name: "mfe_lit", framework: "lit", path: "apps/lit", route: "/x" }],
     };
     const r = deriveMFE(cfg, cfg.mfes[0]!, litAdapter);
     expect(r.port).toBeGreaterThanOrEqual(5173);
     expect(r.port).toBeLessThanOrEqual(5273);
-    expect(r.inferred.find((f) => f.field === "port")?.source).toBe(
-      "auto-assigned",
-    );
+    expect(r.inferred.find((f) => f.field === "port")?.source).toBe("auto-assigned");
   });
 
   it("skips the adapter default when it collides with another explicit port", () => {
@@ -97,15 +82,11 @@ describe("deriveMFE port resolution", () => {
       version: MFKIT_CONFIG_VERSION,
       name: "test",
       shell: { name: "shell", framework: "react", path: "apps/shell", port: 5180 },
-      mfes: [
-        { name: "mfe_a", framework: "react", path: "apps/a", route: "/a" },
-      ],
+      mfes: [{ name: "mfe_a", framework: "react", path: "apps/a", route: "/a" }],
     };
     const r = deriveMFE(cfg, cfg.mfes[0]!, reactAdapter);
     expect(r.port).not.toBe(5180);
-    expect(r.inferred.find((f) => f.field === "port")?.source).toBe(
-      "auto-assigned",
-    );
+    expect(r.inferred.find((f) => f.field === "port")?.source).toBe("auto-assigned");
   });
 });
 
@@ -176,7 +157,7 @@ describe("deriveShell and buildRemotesMap", () => {
 
   it("dev remote URLs use localhost + entry port", () => {
     const m = buildRemotesMap(baseConfig, "dev");
-    expect(m["mfe_a"]).toBe("http://localhost:4001/remoteEntry.js");
+    expect(m.mfe_a).toBe("http://localhost:4001/remoteEntry.js");
   });
 
   it("build remote URLs use entry.origin when set", () => {
@@ -185,13 +166,13 @@ describe("deriveShell and buildRemotesMap", () => {
       mfes: [{ ...baseConfig.mfes[0]!, origin: "https://cdn.example.com" }],
     };
     const m = buildRemotesMap(cfg, "build");
-    expect(m["mfe_a"]).toBe("https://cdn.example.com/remoteEntry.js");
+    expect(m.mfe_a).toBe("https://cdn.example.com/remoteEntry.js");
   });
 
   it("build remote URLs fall back to localhost when origin missing (logged as inferred)", () => {
     const inferred: ReturnType<typeof deriveShell>["inferred"] = [];
     const m = buildRemotesMap(baseConfig, "build", inferred as never);
-    expect(m["mfe_a"]).toBe("http://localhost:4001/remoteEntry.js");
+    expect(m.mfe_a).toBe("http://localhost:4001/remoteEntry.js");
     expect(inferred.some((f) => f.source === "fallback-origin")).toBe(true);
   });
 });

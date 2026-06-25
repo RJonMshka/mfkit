@@ -10,9 +10,7 @@
 // SSR and tests; consumers wire localStorage/IndexedDB at the boundary.
 
 export interface ManifestStorage {
-  get(
-    key: string,
-  ): string | null | undefined | Promise<string | null | undefined>;
+  get(key: string): string | null | undefined | Promise<string | null | undefined>;
   set(key: string, value: string): void | Promise<void>;
   remove(key: string): void | Promise<void>;
 }
@@ -43,16 +41,11 @@ export interface ManifestLoadResult<T> {
 }
 
 export interface ManifestCache<T> {
-  load(
-    key: string,
-    fetcher: () => Promise<T>,
-  ): Promise<ManifestLoadResult<T>>;
+  load(key: string, fetcher: () => Promise<T>): Promise<ManifestLoadResult<T>>;
   invalidate(key: string): Promise<void>;
 }
 
-export function createManifestCache<T>(
-  opts: ManifestCacheOptions = {},
-): ManifestCache<T> {
+export function createManifestCache<T>(opts: ManifestCacheOptions = {}): ManifestCache<T> {
   const storage = opts.storage ?? memoryManifestStorage();
 
   return {

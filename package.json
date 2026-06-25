@@ -11,6 +11,7 @@
   },
   "scripts": {
     "build": "turbo run build",
+    "lint": "biome check .",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
     "clean": "turbo run clean && rm -rf node_modules",
@@ -19,10 +20,11 @@
     "release": "turbo run build && changeset publish"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.1",
     "@changesets/cli": "^2.27.10",
+    "tsup": "^8.4.0",
     "turbo": "^2.5.3",
     "typescript": "^5.8.3",
-    "tsup": "^8.4.0",
     "vitest": "^3.2.0"
   },
   "packageManager": "pnpm@10.32.1",

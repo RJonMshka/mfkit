@@ -135,8 +135,8 @@ describe("generateRemoteTypes edge cases", () => {
   });
 
   it("throws MFKitConfigError when the config is malformed", () => {
-    expect(() =>
-      generateRemoteTypes(null as unknown as MFKitConfig),
-    ).toThrow(/expected a validated MFKitConfig/);
+    expect(() => generateRemoteTypes(null as unknown as MFKitConfig)).toThrow(
+      /expected a validated MFKitConfig/,
+    );
   });
 });

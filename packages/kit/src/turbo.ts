@@ -86,9 +86,7 @@ export function generateTurboConfig(
 
   if (orchestrate && config.mfes.length > 0) {
     const shellPkg = readPackageName(cwd, config.shell.path, "shell");
-    const mfePkgs = config.mfes.map((m, i) =>
-      readPackageName(cwd, m.path, `mfes[${i}]`),
-    );
+    const mfePkgs = config.mfes.map((m, i) => readPackageName(cwd, m.path, `mfes[${i}]`));
     tasks[`${shellPkg}#dev`] = {
       dependsOn: mfePkgs.map((p) => `${p}#dev`),
       cache: false,

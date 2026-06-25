@@ -6,12 +6,12 @@
 
 export {
   __resetRegistry,
+  type CodemodManifest,
   CodemodRegistryError,
   listCodemods,
-  planMigration,
-  registerCodemod,
-  type CodemodManifest,
   type MigrationContext,
   type MigrationLogger,
   type MigrationResult,
+  planMigration,
+  registerCodemod,
 } from "./registry.js";

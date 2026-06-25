@@ -1,14 +1,6 @@
 import { describe, expect, it } from "vitest";
-
-import type {
-  HealingContext,
-  MFEManifestEntry,
-  VersionMismatchContext,
-} from "../../src/index.js";
-import {
-  forgivingStrategy,
-  strictStrategy,
-} from "../../src/healing/strategies.js";
+import { forgivingStrategy, strictStrategy } from "../../src/healing/strategies.js";
+import type { HealingContext, MFEManifestEntry, VersionMismatchContext } from "../../src/index.js";
 
 const entry: MFEManifestEntry = {
   name: "mfe_metrics",

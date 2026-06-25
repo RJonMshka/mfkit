@@ -1,10 +1,4 @@
-import { describe, it, expect } from "vitest";
-import {
-  defineConfig,
-  defineMFE,
-  MFKIT_CONFIG_VERSION,
-  MFKitConfigError,
-} from "../src/index.js";
+import { describe, expect, it } from "vitest";
 import type {
   HealingStrategy,
   MFEContext,
@@ -12,6 +6,7 @@ import type {
   MFEManifestEntry,
   MFKitConfig,
 } from "../src/index.js";
+import { defineConfig, defineMFE, MFKIT_CONFIG_VERSION, MFKitConfigError } from "../src/index.js";
 
 // ─── Fixtures ───────────────────────────────────────────────────────────────
 
@@ -128,9 +123,7 @@ describe("defineConfig", () => {
       ...validConfig,
       mfes: [validEntry, { ...validEntry, port: 3003, route: "/m2" }],
     };
-    expect(() => defineConfig(bad)).toThrowError(
-      /Duplicate MFE name: "mfe_metrics"/,
-    );
+    expect(() => defineConfig(bad)).toThrowError(/Duplicate MFE name: "mfe_metrics"/);
   });
 
   it("throws on duplicate ports across MFEs", () => {

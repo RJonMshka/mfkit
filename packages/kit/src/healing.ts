@@ -17,11 +17,13 @@ import type { HealingStrategy, MFKitConfig } from "@mfkit/plugin-api";
 import { forgivingStrategy } from "./healing/strategies.js";
 
 export {
-  forgivingStrategy,
-  strictStrategy,
-  type ForgivingStrategyOptions,
-  type StrictStrategyOptions,
-} from "./healing/strategies.js";
+  createManifestCache,
+  type ManifestCache,
+  type ManifestCacheOptions,
+  type ManifestLoadResult,
+  type ManifestStorage,
+  memoryManifestStorage,
+} from "./healing/manifest-cache.js";
 
 export {
   createQuarantineRegistry,
@@ -30,26 +32,22 @@ export {
 } from "./healing/quarantine.js";
 
 export {
+  type HealingOpKind,
   MFEHealingError,
   MFEQuarantinedError,
-  runWithHealing,
-  type HealingOpKind,
   type RunWithHealingOptions,
+  runWithHealing,
 } from "./healing/runner.js";
-
+export {
+  type ForgivingStrategyOptions,
+  forgivingStrategy,
+  type StrictStrategyOptions,
+  strictStrategy,
+} from "./healing/strategies.js";
 export {
   checkSingletonVersion,
   SingletonVersionError,
 } from "./healing/version.js";
-
-export {
-  createManifestCache,
-  memoryManifestStorage,
-  type ManifestCache,
-  type ManifestCacheOptions,
-  type ManifestLoadResult,
-  type ManifestStorage,
-} from "./healing/manifest-cache.js";
 
 /** Resolve the strategy a consumer's MFKitConfig declares, or the default. */
 export function resolveHealingStrategy(config: MFKitConfig): HealingStrategy {

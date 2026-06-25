@@ -4,17 +4,9 @@
 // in later steps.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-import type {
-  MFEContext,
-  MFEDefinition,
-  MFEManifestEntry,
-} from "../../src/index.js";
 import { createQuarantineRegistry } from "../../src/healing/quarantine.js";
-import {
-  forgivingStrategy,
-  strictStrategy,
-} from "../../src/healing/strategies.js";
+import { forgivingStrategy, strictStrategy } from "../../src/healing/strategies.js";
+import type { MFEContext, MFEDefinition, MFEManifestEntry } from "../../src/index.js";
 import {
   createOutletController,
   type OutletControllerOptions,
@@ -40,9 +32,7 @@ interface MountCall {
   props: unknown;
 }
 
-function fakeLifecycle(
-  mountImpl?: (el: HTMLElement, ctx: MFEContext, props: unknown) => unknown,
-) {
+function fakeLifecycle(mountImpl?: (el: HTMLElement, ctx: MFEContext, props: unknown) => unknown) {
   const mountCalls: MountCall[] = [];
   const unmountCalls: HTMLElement[] = [];
   const definition: MFEDefinition = {

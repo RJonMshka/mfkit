@@ -37,9 +37,7 @@ export interface ForgivingStrategyOptions {
   readonly id?: string;
 }
 
-export function forgivingStrategy(
-  opts: ForgivingStrategyOptions = {},
-): HealingStrategy {
+export function forgivingStrategy(opts: ForgivingStrategyOptions = {}): HealingStrategy {
   const maxAttempts = opts.maxAttempts ?? FORGIVING_DEFAULTS.maxAttempts;
   const initialDelayMs = opts.initialDelayMs ?? FORGIVING_DEFAULTS.initialDelayMs;
   const maxDelayMs = opts.maxDelayMs ?? FORGIVING_DEFAULTS.maxDelayMs;
@@ -48,10 +46,7 @@ export function forgivingStrategy(
 
   const decide = (ctx: HealingContext): HealingDecision => {
     if (ctx.attempt >= maxAttempts) return { action: "quarantine" };
-    const delay = Math.min(
-      initialDelayMs * 2 ** (ctx.attempt - 1),
-      maxDelayMs,
-    );
+    const delay = Math.min(initialDelayMs * 2 ** (ctx.attempt - 1), maxDelayMs);
     return { action: "retry", afterMs: delay };
   };
 
@@ -69,9 +64,7 @@ export interface StrictStrategyOptions {
   readonly onVersionMismatch?: VersionMismatchVerdict;
 }
 
-export function strictStrategy(
-  opts: StrictStrategyOptions = {},
-): HealingStrategy {
+export function strictStrategy(opts: StrictStrategyOptions = {}): HealingStrategy {
   const id = opts.id ?? STRICT_DEFAULTS.id;
   const verdict = opts.onVersionMismatch ?? STRICT_DEFAULTS.versionMismatch;
   return {

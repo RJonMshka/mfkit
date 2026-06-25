@@ -14,11 +14,7 @@ import type {
 } from "@mfkit/plugin-api";
 
 import type { QuarantineRegistry } from "../healing/quarantine.js";
-import {
-  MFEHealingError,
-  MFEQuarantinedError,
-  runWithHealing,
-} from "../healing/runner.js";
+import { MFEHealingError, MFEQuarantinedError, runWithHealing } from "../healing/runner.js";
 
 import type { LoadRemote, OutletState } from "./types.js";
 
@@ -51,9 +47,7 @@ export interface OutletController {
   stop(): Promise<void>;
 }
 
-export function createOutletController(
-  opts: OutletControllerOptions,
-): OutletController {
+export function createOutletController(opts: OutletControllerOptions): OutletController {
   let abortController: AbortController | null = null;
   let mounted: { definition: MFEDefinition; container: HTMLElement } | null = null;
   /** Generation counter — discards stale async results after a restart. */
@@ -202,11 +196,9 @@ export function createOutletController(
 }
 
 function extractDefinition(mod: unknown, id: string): MFEDefinition {
-  const candidate = (isRecord(mod) && isMFEDefinition(mod.default)
-    ? mod.default
-    : isMFEDefinition(mod)
-      ? mod
-      : null) as MFEDefinition | null;
+  const candidate = (
+    isRecord(mod) && isMFEDefinition(mod.default) ? mod.default : isMFEDefinition(mod) ? mod : null
+  ) as MFEDefinition | null;
   if (!candidate) {
     throw new Error(
       `Remote "${id}" did not expose a valid MFE lifecycle (need { mount, unmount }).`,
@@ -220,11 +212,7 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 }
 
 function isMFEDefinition(v: unknown): v is MFEDefinition {
-  return (
-    isRecord(v) &&
-    typeof v.mount === "function" &&
-    typeof v.unmount === "function"
-  );
+  return isRecord(v) && typeof v.mount === "function" && typeof v.unmount === "function";
 }
 
 function extractReason(err: MFEQuarantinedError): string {

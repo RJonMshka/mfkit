@@ -21,9 +21,7 @@ export function logInferred(
   if (SHOWN.has(scope)) return;
   SHOWN.add(scope);
 
-  const lines = fields.map(
-    (f) => `  • ${f.field} = ${f.value}  (${f.source})`,
-  );
+  const lines = fields.map((f) => `  • ${f.field} = ${f.value}  (${f.source})`);
   // eslint-disable-next-line no-console
   console.info(`[mfkit] ${scope}: inferred defaults\n${lines.join("\n")}`);
 }

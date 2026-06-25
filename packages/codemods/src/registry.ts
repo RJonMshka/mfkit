@@ -113,19 +113,14 @@ export function listCodemods(): readonly CodemodManifest[] {
  * any step has no registered codemod (gap), or when two codemods cover the
  * same step (ambiguous — the registry refuses to pick winners silently).
  */
-export function planMigration(
-  from: number,
-  to: number,
-): readonly CodemodManifest[] {
+export function planMigration(from: number, to: number): readonly CodemodManifest[] {
   if (!Number.isInteger(from) || from < 0) {
     throw new CodemodRegistryError(
       `planMigration: from must be a non-negative integer, got ${from}`,
     );
   }
   if (!Number.isInteger(to) || to < 0) {
-    throw new CodemodRegistryError(
-      `planMigration: to must be a non-negative integer, got ${to}`,
-    );
+    throw new CodemodRegistryError(`planMigration: to must be a non-negative integer, got ${to}`);
   }
   if (from > to) {
     throw new CodemodRegistryError(
@@ -138,13 +133,9 @@ export function planMigration(
   const plan: CodemodManifest[] = [];
 
   for (let v = from; v < to; v++) {
-    const matches = all.filter(
-      (c) => c.fromVersion === v && c.toVersion === v + 1,
-    );
+    const matches = all.filter((c) => c.fromVersion === v && c.toVersion === v + 1);
     if (matches.length === 0) {
-      throw new CodemodRegistryError(
-        `planMigration: no codemod registered for v${v} → v${v + 1}.`,
-      );
+      throw new CodemodRegistryError(`planMigration: no codemod registered for v${v} → v${v + 1}.`);
     }
     if (matches.length > 1) {
       const ids = matches.map((c) => `"${c.id}"`).join(", ");
@@ -170,19 +161,13 @@ export function __resetRegistry(): void {
 
 function validateManifest(manifest: CodemodManifest): void {
   if (!manifest || typeof manifest !== "object") {
-    throw new CodemodRegistryError(
-      "registerCodemod: manifest must be an object.",
-    );
+    throw new CodemodRegistryError("registerCodemod: manifest must be an object.");
   }
   if (typeof manifest.id !== "string" || manifest.id.length === 0) {
-    throw new CodemodRegistryError(
-      "registerCodemod: manifest.id must be a non-empty string.",
-    );
+    throw new CodemodRegistryError("registerCodemod: manifest.id must be a non-empty string.");
   }
   if (typeof manifest.description !== "string") {
-    throw new CodemodRegistryError(
-      `registerCodemod: ${manifest.id} is missing a description.`,
-    );
+    throw new CodemodRegistryError(`registerCodemod: ${manifest.id} is missing a description.`);
   }
   if (
     !Number.isInteger(manifest.fromVersion) ||
@@ -202,8 +187,6 @@ function validateManifest(manifest: CodemodManifest): void {
     );
   }
   if (typeof manifest.apply !== "function") {
-    throw new CodemodRegistryError(
-      `registerCodemod: ${manifest.id}.apply must be a function.`,
-    );
+    throw new CodemodRegistryError(`registerCodemod: ${manifest.id}.apply must be a function.`);
   }
 }

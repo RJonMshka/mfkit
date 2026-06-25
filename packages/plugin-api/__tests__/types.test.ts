@@ -9,7 +9,6 @@
 
 import { describe, expectTypeOf, it } from "vitest";
 import {
-  MFKIT_CONFIG_VERSION,
   type FrameworkAdapter,
   type FrameworkId,
   type HealingDecision,
@@ -17,6 +16,7 @@ import {
   type MFEContext,
   type MFEDefinition,
   type MFEManifestEntry,
+  MFKIT_CONFIG_VERSION,
   type MFKitConfig,
   type MFKitOutletPropsBase,
   type MFKitPlugin,
@@ -143,7 +143,9 @@ describe("HealingStrategy", () => {
     expectTypeOf<HealingStrategy["onLoadError"]>().parameters.toMatchTypeOf<
       [{ entry: MFEManifestEntry; attempt: number; error: Error }]
     >();
-    expectTypeOf<HealingStrategy["onVersionMismatch"]>().returns.toEqualTypeOf<VersionMismatchVerdict>();
+    expectTypeOf<
+      HealingStrategy["onVersionMismatch"]
+    >().returns.toEqualTypeOf<VersionMismatchVerdict>();
   });
 });
 

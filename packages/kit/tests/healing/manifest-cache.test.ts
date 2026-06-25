@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   createManifestCache,
-  memoryManifestStorage,
   type ManifestStorage,
+  memoryManifestStorage,
 } from "../../src/healing/manifest-cache.js";
 
 interface Manifest {
@@ -38,18 +38,18 @@ describe("createManifestCache", () => {
 
   it("rethrows the original error when fetcher fails and no cache exists", async () => {
     const cache = createManifestCache<Manifest>();
-    await expect(
-      cache.load("missing", () => Promise.reject(new Error("404"))),
-    ).rejects.toThrow("404");
+    await expect(cache.load("missing", () => Promise.reject(new Error("404")))).rejects.toThrow(
+      "404",
+    );
   });
 
   it("invalidate removes the cached value", async () => {
     const cache = createManifestCache<Manifest>();
     await cache.load("k", async () => ({ version: "1.0.0" }));
     await cache.invalidate("k");
-    await expect(
-      cache.load("k", () => Promise.reject(new Error("offline"))),
-    ).rejects.toThrow("offline");
+    await expect(cache.load("k", () => Promise.reject(new Error("offline")))).rejects.toThrow(
+      "offline",
+    );
   });
 
   it("supports async storage adapters", async () => {
@@ -81,9 +81,10 @@ describe("createManifestCache", () => {
     };
     const cache = createManifestCache<Manifest>({ storage });
 
-    await expect(
-      cache.load("k", async () => ({ version: "3.0.0" })),
-    ).resolves.toEqual({ value: { version: "3.0.0" }, stale: false });
+    await expect(cache.load("k", async () => ({ version: "3.0.0" }))).resolves.toEqual({
+      value: { version: "3.0.0" },
+      stale: false,
+    });
   });
 
   it("falls through to the underlying error if cached value is corrupted JSON", async () => {
@@ -93,8 +94,8 @@ describe("createManifestCache", () => {
       remove: () => {},
     };
     const cache = createManifestCache<Manifest>({ storage });
-    await expect(
-      cache.load("k", () => Promise.reject(new Error("offline"))),
-    ).rejects.toThrow("offline");
+    await expect(cache.load("k", () => Promise.reject(new Error("offline")))).rejects.toThrow(
+      "offline",
+    );
   });
 });

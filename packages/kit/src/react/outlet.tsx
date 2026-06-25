@@ -5,23 +5,18 @@
 // All MFE-specific behavior (load policy, retry, quarantine) lives in the
 // HealingStrategy plumbed through the provider or the `healing` prop.
 
+import type { HealingStrategy, MFEManifestEntry } from "@mfkit/plugin-api";
 import {
+  type ReactElement,
+  type ReactNode,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type ReactElement,
-  type ReactNode,
 } from "react";
-
-import type {
-  HealingStrategy,
-  MFEManifestEntry,
-} from "@mfkit/plugin-api";
-
-import { forgivingStrategy } from "../healing/strategies.js";
 import { createQuarantineRegistry, type QuarantineRegistry } from "../healing/quarantine.js";
+import { forgivingStrategy } from "../healing/strategies.js";
 
 import { createOutletController } from "./controller.js";
 import {
@@ -32,11 +27,7 @@ import {
 } from "./default-slots.js";
 import { MFEErrorBoundary } from "./error-boundary.js";
 import { useMFKitContext } from "./provider.js";
-import type {
-  MFKitOutletProps,
-  OutletState,
-  RetryingSlotInfo,
-} from "./types.js";
+import type { MFKitOutletProps, OutletState, RetryingSlotInfo } from "./types.js";
 
 export function MFKitOutlet(props: MFKitOutletProps): ReactElement {
   const ctx = useMFKitContext();
@@ -48,11 +39,11 @@ export function MFKitOutlet(props: MFKitOutletProps): ReactElement {
     );
   }
 
-  const strategy: HealingStrategy =
-    props.healing ?? ctx?.strategy ?? FALLBACK_STRATEGY;
+  const strategy: HealingStrategy = props.healing ?? ctx?.strategy ?? FALLBACK_STRATEGY;
   const registry: QuarantineRegistry =
     props.quarantineRegistry ?? ctx?.registry ?? FALLBACK_REGISTRY;
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: resolveEntry uses only props.entry/remote/basePath — all listed; passing props avoids refactoring the helper
   const entry = useMemo<MFEManifestEntry>(
     () => resolveEntry(props, ctx?.entries),
     [props.entry, props.remote, props.basePath, ctx?.entries],
@@ -75,6 +66,7 @@ export function MFKitOutlet(props: MFKitOutletProps): ReactElement {
   onUnmountRef.current = props.onUnmount;
   onErrorRef.current = props.onError;
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: retryKey is an intentional trigger — incrementing it forces the effect to remount on retry
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -99,16 +91,7 @@ export function MFKitOutlet(props: MFKitOutletProps): ReactElement {
     return () => {
       void controller.stop();
     };
-  }, [
-    entry,
-    loadRemote,
-    strategy,
-    registry,
-    props.basePath,
-    props.module,
-    props.props,
-    retryKey,
-  ]);
+  }, [entry, loadRemote, strategy, registry, props.basePath, props.module, props.props, retryKey]);
 
   const overlay = renderOverlay(state, entry, props, retry);
   const isMounted = state.kind === "mounted";
@@ -124,11 +107,7 @@ export function MFKitOutlet(props: MFKitOutletProps): ReactElement {
         })
       }
     >
-      <div
-        className={props.className}
-        data-mfkit-outlet={entry.name}
-        data-mfkit-state={state.kind}
-      >
+      <div className={props.className} data-mfkit-outlet={entry.name} data-mfkit-state={state.kind}>
         {overlay}
         <div
           ref={containerRef}
@@ -208,4 +187,3 @@ function resolveEntry(
     route: props.basePath ?? "/",
   };
 }
-

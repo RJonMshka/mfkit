@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
-  MFKIT_CONFIG_VERSION,
-  MFKitConfigError,
   type FrameworkAdapter,
+  MFKIT_CONFIG_VERSION,
   type MFKitConfig,
+  MFKitConfigError,
 } from "../../src/index.js";
 import { mfkitMFE, mfkitShell } from "../../src/vite.js";
 
@@ -92,6 +92,6 @@ describe("mfkitShell", () => {
       name: "shell",
       remotes: { mfe_a: "http://localhost:4001/remoteEntry.js" },
     });
-    expect(federationCalls[0]?.["exposes"]).toBeUndefined();
+    expect(federationCalls[0]?.exposes).toBeUndefined();
   });
 });

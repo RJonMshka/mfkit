@@ -1,11 +1,6 @@
 import { describe, expect, it } from "vitest";
-
-import {
-  MFKIT_CONFIG_VERSION,
-  type HealingStrategy,
-  type MFKitConfig,
-} from "../../src/index.js";
 import { resolveHealingStrategy } from "../../src/healing.js";
+import { type HealingStrategy, MFKIT_CONFIG_VERSION, type MFKitConfig } from "../../src/index.js";
 
 const baseConfig: MFKitConfig = {
   version: MFKIT_CONFIG_VERSION,
@@ -29,8 +24,6 @@ describe("resolveHealingStrategy", () => {
       onMountError: () => ({ action: "quarantine" }),
       onVersionMismatch: () => "ignore",
     };
-    expect(resolveHealingStrategy({ ...baseConfig, healing: custom })).toBe(
-      custom,
-    );
+    expect(resolveHealingStrategy({ ...baseConfig, healing: custom })).toBe(custom);
   });
 });

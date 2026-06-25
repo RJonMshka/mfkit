@@ -10,7 +10,7 @@ import { dirname, resolve } from "node:path";
 
 import type { MFKitConfig } from "@mfkit/plugin-api";
 
-import { generateRemoteTypes, type GenerateRemoteTypesOptions } from "./generate.js";
+import { type GenerateRemoteTypesOptions, generateRemoteTypes } from "./generate.js";
 
 export const DEFAULT_REMOTE_TYPES_PATH = ".mfkit/generated/remotes.d.ts";
 

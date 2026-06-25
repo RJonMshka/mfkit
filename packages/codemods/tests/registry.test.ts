@@ -2,13 +2,13 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   __resetRegistry,
+  type CodemodManifest,
   CodemodRegistryError,
   listCodemods,
-  planMigration,
-  registerCodemod,
-  type CodemodManifest,
   type MigrationContext,
   type MigrationResult,
+  planMigration,
+  registerCodemod,
 } from "../src/registry.js";
 
 function noopCodemod(
@@ -49,16 +49,14 @@ describe("registerCodemod", () => {
       registerCodemod(noopCodemod({ id: "neg", fromVersion: -1, toVersion: 0 })),
     ).toThrow(CodemodRegistryError);
     expect(() =>
-      registerCodemod(
-        noopCodemod({ id: "frac", fromVersion: 1.5, toVersion: 2.5 }),
-      ),
+      registerCodemod(noopCodemod({ id: "frac", fromVersion: 1.5, toVersion: 2.5 })),
     ).toThrow(CodemodRegistryError);
   });
 
   it("rejects empty id and missing apply", () => {
-    expect(() =>
-      registerCodemod(noopCodemod({ id: "", fromVersion: 1, toVersion: 2 })),
-    ).toThrow(CodemodRegistryError);
+    expect(() => registerCodemod(noopCodemod({ id: "", fromVersion: 1, toVersion: 2 }))).toThrow(
+      CodemodRegistryError,
+    );
     expect(() =>
       registerCodemod({
         id: "missing-apply",
@@ -79,9 +77,9 @@ describe("registerCodemod", () => {
 
   it("rejects a different manifest under an existing id", () => {
     registerCodemod(noopCodemod({ id: "dup", fromVersion: 1, toVersion: 2 }));
-    expect(() =>
-      registerCodemod(noopCodemod({ id: "dup", fromVersion: 1, toVersion: 2 })),
-    ).toThrow(/already registered/);
+    expect(() => registerCodemod(noopCodemod({ id: "dup", fromVersion: 1, toVersion: 2 }))).toThrow(
+      /already registered/,
+    );
   });
 });
 
@@ -110,11 +108,7 @@ describe("planMigration", () => {
     registerCodemod(noopCodemod({ id: "v1_v2", fromVersion: 1, toVersion: 2 }));
     registerCodemod(noopCodemod({ id: "v2_v3", fromVersion: 2, toVersion: 3 }));
     registerCodemod(noopCodemod({ id: "v3_v4", fromVersion: 3, toVersion: 4 }));
-    expect(planMigration(1, 4).map((c) => c.id)).toEqual([
-      "v1_v2",
-      "v2_v3",
-      "v3_v4",
-    ]);
+    expect(planMigration(1, 4).map((c) => c.id)).toEqual(["v1_v2", "v2_v3", "v3_v4"]);
   });
 
   it("throws when a step has no codemod", () => {

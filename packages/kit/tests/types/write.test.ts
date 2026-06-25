@@ -6,10 +6,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { MFKIT_CONFIG_VERSION, type MFKitConfig } from "../../src/index.js";
-import {
-  DEFAULT_REMOTE_TYPES_PATH,
-  writeRemoteTypes,
-} from "../../src/types/write.js";
+import { DEFAULT_REMOTE_TYPES_PATH, writeRemoteTypes } from "../../src/types/write.js";
 
 let cwd: string;
 
@@ -18,9 +15,7 @@ function baseConfig(): MFKitConfig {
     version: MFKIT_CONFIG_VERSION,
     name: "host",
     shell: { name: "shell", framework: "react", path: "apps/shell" },
-    mfes: [
-      { name: "mfe_a", framework: "react", path: "apps/mfe-a", route: "/a" },
-    ],
+    mfes: [{ name: "mfe_a", framework: "react", path: "apps/mfe-a", route: "/a" }],
   };
 }
 
@@ -74,16 +69,10 @@ describe("writeRemoteTypes", () => {
 
   it("writes when the existing file's content differs", async () => {
     await mkdir(join(cwd, ".mfkit/generated"), { recursive: true });
-    writeFileSync(
-      join(cwd, DEFAULT_REMOTE_TYPES_PATH),
-      "// stale content\n",
-      "utf8",
-    );
+    writeFileSync(join(cwd, DEFAULT_REMOTE_TYPES_PATH), "// stale content\n", "utf8");
 
     const result = await writeRemoteTypes(baseConfig(), { cwd });
     expect(result.unchanged).toBe(false);
-    expect(readFileSync(result.outPath, "utf8")).toContain(
-      'declare module "mfe_a/lifecycle"',
-    );
+    expect(readFileSync(result.outPath, "utf8")).toContain('declare module "mfe_a/lifecycle"');
   });
 });

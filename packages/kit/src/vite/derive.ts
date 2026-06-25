@@ -57,9 +57,9 @@ export function findMFE(config: MFKitConfig, name: string): MFEManifestEntry {
   const found = config.mfes.find((m) => m.name === name);
   if (!found) {
     throw new MFKitConfigError(
-      `No MFE named "${name}" in mfkit.config.ts. Known: ${config.mfes
-        .map((m) => `"${m.name}"`)
-        .join(", ") || "<none>"}`,
+      `No MFE named "${name}" in mfkit.config.ts. Known: ${
+        config.mfes.map((m) => `"${m.name}"`).join(", ") || "<none>"
+      }`,
       [{ path: "mfes", message: `Unknown MFE name "${name}"` }],
     );
   }
@@ -85,11 +85,7 @@ export function deriveMFE(
     });
   }
 
-  const shared = composeShared(
-    adapter.defaultShared,
-    config.shared,
-    entry.shared,
-  );
+  const shared = composeShared(adapter.defaultShared, config.shared, entry.shared);
 
   const remoteEntryFile = entry.remoteEntry ?? DEFAULT_REMOTE_ENTRY;
   if (entry.remoteEntry === undefined) {
@@ -122,11 +118,7 @@ export function deriveShell(
   }
 
   const remotes = buildRemotesMap(config, opts.mode, inferred);
-  const shared = composeShared(
-    adapter.defaultShared,
-    config.shared,
-    config.shell.shared,
-  );
+  const shared = composeShared(adapter.defaultShared, config.shared, config.shell.shared);
 
   return { shell: config.shell, port, remotes, shared, inferred };
 }
@@ -141,16 +133,12 @@ export function buildRemotesMap(
   for (const entry of config.mfes) {
     const port = entry.port ?? ports.get(entry.name);
     if (port === undefined) {
-      throw new MFKitConfigError(
-        `Internal: failed to resolve port for MFE "${entry.name}"`,
-        [{ path: `mfes[${entry.name}].port`, message: "no port resolved" }],
-      );
+      throw new MFKitConfigError(`Internal: failed to resolve port for MFE "${entry.name}"`, [
+        { path: `mfes[${entry.name}].port`, message: "no port resolved" },
+      ]);
     }
     const file = entry.remoteEntry ?? DEFAULT_REMOTE_ENTRY;
-    const origin =
-      mode === "build" && entry.origin
-        ? entry.origin
-        : `http://localhost:${port}`;
+    const origin = mode === "build" && entry.origin ? entry.origin : `http://localhost:${port}`;
     if (mode === "build" && !entry.origin && inferred) {
       inferred.push({
         scope: "shell",
@@ -237,9 +225,7 @@ function hashName(name: string): number {
   return Math.abs(h);
 }
 
-function composeShared(
-  ...maps: readonly (SharedDependencyMap | undefined)[]
-): SharedDependencyMap {
+function composeShared(...maps: readonly (SharedDependencyMap | undefined)[]): SharedDependencyMap {
   const out: Record<string, SharedDependencyMap[string]> = {};
   for (const m of maps) {
     if (!m) continue;

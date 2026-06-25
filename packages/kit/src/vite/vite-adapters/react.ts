@@ -1,6 +1,5 @@
-import react from "@vitejs/plugin-react";
-
 import type { FrameworkAdapter } from "@mfkit/plugin-api";
+import react from "@vitejs/plugin-react";
 
 const adapter: FrameworkAdapter = {
   id: "react",

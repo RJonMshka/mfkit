@@ -5,13 +5,13 @@
 // hang off the same surface when codemods land in v0.3+.
 
 import {
+  type CodemodManifest,
   CodemodRegistryError,
   listCodemods,
-  planMigration,
-  type CodemodManifest,
   type MigrationContext,
   type MigrationLogger,
   type MigrationResult,
+  planMigration,
 } from "./registry.js";
 
 export interface CliIO {
@@ -41,10 +41,7 @@ Notes:
  * this file forwards it to `process.exit`. Tests invoke `main` directly with
  * a capturing `CliIO`.
  */
-export async function main(
-  argv: readonly string[],
-  io: CliIO = defaultIO(),
-): Promise<number> {
+export async function main(argv: readonly string[], io: CliIO = defaultIO()): Promise<number> {
   const [cmd, ...rest] = argv;
 
   switch (cmd) {
@@ -77,9 +74,7 @@ function runList(io: CliIO): number {
   }
   io.stdout(`Registered codemods (${codemods.length}):\n`);
   for (const c of codemods) {
-    io.stdout(
-      `  • ${c.id}  v${c.fromVersion} → v${c.toVersion}  — ${c.description}\n`,
-    );
+    io.stdout(`  • ${c.id}  v${c.fromVersion} → v${c.toVersion}  — ${c.description}\n`);
   }
   return 0;
 }
@@ -105,9 +100,7 @@ function runPlan(args: readonly string[], io: CliIO): number {
   }
   io.stdout(`Plan v${from} → v${to} (${plan.length} step${plan.length === 1 ? "" : "s"}):\n`);
   for (const c of plan) {
-    io.stdout(
-      `  ${c.fromVersion} → ${c.toVersion}  ${c.id}  — ${c.description}\n`,
-    );
+    io.stdout(`  ${c.fromVersion} → ${c.toVersion}  ${c.id}  — ${c.description}\n`);
   }
   return 0;
 }
@@ -159,9 +152,7 @@ async function runUp(args: readonly string[], io: CliIO): Promise<number> {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-type ParsedRange =
-  | { kind: "ok"; from: number; to: number }
-  | { kind: "error"; message: string };
+type ParsedRange = { kind: "ok"; from: number; to: number } | { kind: "error"; message: string };
 
 function parseRange(args: readonly string[]): ParsedRange {
   const from = parseFlag(args, "--from");

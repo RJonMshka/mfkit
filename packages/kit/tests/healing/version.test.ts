@@ -1,15 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
+import { checkSingletonVersion, SingletonVersionError } from "../../src/healing/version.js";
 import type {
   HealingStrategy,
   MFEManifestEntry,
   VersionMismatchContext,
   VersionMismatchVerdict,
 } from "../../src/index.js";
-import {
-  SingletonVersionError,
-  checkSingletonVersion,
-} from "../../src/healing/version.js";
 
 const entry: MFEManifestEntry = {
   name: "mfe_metrics",
@@ -47,9 +43,7 @@ afterEach(() => {
 
 describe("checkSingletonVersion", () => {
   it('throws SingletonVersionError when verdict is "throw"', () => {
-    expect(() => checkSingletonVersion(strategyWith("throw"), ctx)).toThrow(
-      SingletonVersionError,
-    );
+    expect(() => checkSingletonVersion(strategyWith("throw"), ctx)).toThrow(SingletonVersionError);
     try {
       checkSingletonVersion(strategyWith("throw"), ctx);
     } catch (e) {

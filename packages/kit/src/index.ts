@@ -4,12 +4,8 @@
 // Vite generation (Step 4), React outlet (Step 6), and healing primitives
 // (Step 7) live in subpath entries (./vite, ./react, ./healing).
 
+import { type MFEDefinition, MFKIT_CONFIG_VERSION, type MFKitConfig } from "@mfkit/plugin-api";
 import * as v from "valibot";
-import {
-  MFKIT_CONFIG_VERSION,
-  type MFEDefinition,
-  type MFKitConfig,
-} from "@mfkit/plugin-api";
 
 // Re-export the entire plugin-api surface so consumers can import everything
 // from @mfkit/kit. The kit's public API is the contract + the runtime helpers.
@@ -62,15 +58,9 @@ const mfeEntrySchema = v.looseObject({
   name: v.pipe(
     v.string("name must be a string"),
     v.minLength(1, "name cannot be empty"),
-    v.regex(
-      JS_IDENTIFIER,
-      "name must be a valid JS identifier (e.g. mfe_metrics)",
-    ),
+    v.regex(JS_IDENTIFIER, "name must be a valid JS identifier (e.g. mfe_metrics)"),
   ),
-  route: v.pipe(
-    v.string("route must be a string"),
-    v.startsWith("/", "route must start with '/'"),
-  ),
+  route: v.pipe(v.string("route must be a string"), v.startsWith("/", "route must start with '/'")),
   framework: v.pipe(v.string("framework must be a string"), v.minLength(1)),
   path: v.pipe(v.string("path must be a string"), v.minLength(1, "path cannot be empty")),
   port: v.optional(portSchema),
@@ -80,9 +70,7 @@ const mfeEntrySchema = v.looseObject({
   shared: v.optional(sharedMapSchema),
   label: v.optional(v.string()),
   description: v.optional(v.string()),
-  budgetBytes: v.optional(
-    v.pipe(v.number(), v.minValue(0, "budgetBytes must be >= 0")),
-  ),
+  budgetBytes: v.optional(v.pipe(v.number(), v.minValue(0, "budgetBytes must be >= 0"))),
 });
 
 const shellSchema = v.looseObject({
@@ -100,10 +88,7 @@ const shellSchema = v.looseObject({
 });
 
 const mfkitConfigSchema = v.looseObject({
-  version: v.literal(
-    MFKIT_CONFIG_VERSION,
-    `version must equal ${MFKIT_CONFIG_VERSION}`,
-  ),
+  version: v.literal(MFKIT_CONFIG_VERSION, `version must equal ${MFKIT_CONFIG_VERSION}`),
   name: v.pipe(v.string(), v.minLength(1, "name cannot be empty")),
   shell: shellSchema,
   mfes: v.array(mfeEntrySchema),
@@ -157,9 +142,7 @@ export function defineConfig(config: MFKitConfig): MFKitConfig {
  * this so the kit can intercept mount/unmount for healing telemetry without
  * changing behavior.
  */
-export function defineMFE<Props = unknown>(
-  def: MFEDefinition<Props>,
-): MFEDefinition<Props> {
+export function defineMFE<Props = unknown>(def: MFEDefinition<Props>): MFEDefinition<Props> {
   if (def === null || typeof def !== "object") {
     throw new MFKitConfigError(
       "defineMFE: lifecycle must be an object with mount/unmount functions",
@@ -167,16 +150,14 @@ export function defineMFE<Props = unknown>(
     );
   }
   if (typeof def.mount !== "function") {
-    throw new MFKitConfigError(
-      "defineMFE: mount must be a function",
-      [{ path: "mount", message: "mount must be a function" }],
-    );
+    throw new MFKitConfigError("defineMFE: mount must be a function", [
+      { path: "mount", message: "mount must be a function" },
+    ]);
   }
   if (typeof def.unmount !== "function") {
-    throw new MFKitConfigError(
-      "defineMFE: unmount must be a function",
-      [{ path: "unmount", message: "unmount must be a function" }],
-    );
+    throw new MFKitConfigError("defineMFE: unmount must be a function", [
+      { path: "unmount", message: "unmount must be a function" },
+    ]);
   }
   return def;
 }

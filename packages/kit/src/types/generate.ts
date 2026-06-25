@@ -9,7 +9,7 @@
 //
 // No file I/O. No bundler/UI imports. Pure node, tree-shakable in isolation.
 
-import type { MFKitConfig, MFEManifestEntry } from "@mfkit/plugin-api";
+import type { MFEManifestEntry, MFKitConfig } from "@mfkit/plugin-api";
 
 import { MFKitConfigError } from "../index.js";
 
@@ -75,11 +75,7 @@ function resolveExposeKeys(mfe: MFEManifestEntry): readonly string[] {
   return keys.length > 0 ? keys : [DEFAULT_EXPOSE_KEY];
 }
 
-function renderModuleBlock(
-  mfeName: string,
-  exposeKey: string,
-  contractPkg: string,
-): string {
+function renderModuleBlock(mfeName: string, exposeKey: string, contractPkg: string): string {
   const moduleSpecifier = `${mfeName}/${stripExposePrefix(exposeKey)}`;
   return [
     `declare module "${moduleSpecifier}" {`,

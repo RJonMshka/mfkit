@@ -10,15 +10,15 @@
 // watcher only tears down when explicitly closed. Errors surface via the
 // optional `onError` hook so callers can wire telemetry.
 
-import { watch, type FSWatcher } from "node:fs";
+import { type FSWatcher, watch } from "node:fs";
 import { resolve } from "node:path";
 
 import type { MFKitConfig } from "@mfkit/plugin-api";
 
 import {
-  writeRemoteTypes,
   type WriteRemoteTypesOptions,
   type WriteRemoteTypesResult,
+  writeRemoteTypes,
 } from "./write.js";
 
 export interface WatchRemoteTypesOptions extends WriteRemoteTypesOptions {
@@ -62,10 +62,7 @@ export function watchRemoteTypes(
     opts.onError ??
     ((err: unknown): void => {
       // eslint-disable-next-line no-console
-      console.warn(
-        "[mfkit/types] regeneration failed:",
-        err instanceof Error ? err.message : err,
-      );
+      console.warn("[mfkit/types] regeneration failed:", err instanceof Error ? err.message : err);
     });
 
   const watchers: FSWatcher[] = [];

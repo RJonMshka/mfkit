@@ -4,13 +4,8 @@
 // with React-native slot types. The base lives in plugin-api so future
 // Vue/Svelte outlets share the same prop names without dragging React in.
 
+import type { HealingStrategy, MFEManifestEntry, MFKitOutletPropsBase } from "@mfkit/plugin-api";
 import type { ReactNode } from "react";
-
-import type {
-  HealingStrategy,
-  MFEManifestEntry,
-  MFKitOutletPropsBase,
-} from "@mfkit/plugin-api";
 
 import type { QuarantineRegistry } from "../healing/quarantine.js";
 

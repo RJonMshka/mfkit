@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  MFKitConfigError,
-  type FrameworkAdapter,
-} from "../../src/index.js";
+import { type FrameworkAdapter, MFKitConfigError } from "../../src/index.js";
 import { resolveAdapter } from "../../src/vite/adapter-resolve.js";
 
 describe("resolveAdapter", () => {

@@ -15,19 +15,17 @@
 //   - DEFAULT_REMOTE_TYPES_PATH              ".mfkit/generated/remotes.d.ts"
 
 export {
-  generateRemoteTypes,
   type GenerateRemoteTypesOptions,
+  generateRemoteTypes,
 } from "./types/generate.js";
-
 export {
-  writeRemoteTypes,
+  type RemoteTypesWatcher,
+  type WatchRemoteTypesOptions,
+  watchRemoteTypes,
+} from "./types/watch.js";
+export {
   DEFAULT_REMOTE_TYPES_PATH,
   type WriteRemoteTypesOptions,
   type WriteRemoteTypesResult,
+  writeRemoteTypes,
 } from "./types/write.js";
-
-export {
-  watchRemoteTypes,
-  type WatchRemoteTypesOptions,
-  type RemoteTypesWatcher,
-} from "./types/watch.js";

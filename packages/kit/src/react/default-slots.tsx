@@ -33,7 +33,9 @@ export function DefaultError(info: ErrorSlotInfo): ReactElement {
   const label = info.entry.label ?? info.entry.name;
   return (
     <div role="alert" data-mfkit-state="error">
-      <p>{label} failed to load: {info.error.message}</p>
+      <p>
+        {label} failed to load: {info.error.message}
+      </p>
       <button type="button" onClick={info.retry}>
         Retry
       </button>
@@ -45,7 +47,9 @@ export function DefaultQuarantined(info: QuarantinedSlotInfo): ReactElement {
   const label = info.entry.label ?? info.entry.name;
   return (
     <div role="alert" data-mfkit-state="quarantined">
-      <p>{label} is quarantined: {info.reason}</p>
+      <p>
+        {label} is quarantined: {info.reason}
+      </p>
       <button type="button" onClick={info.retry}>
         Try again
       </button>

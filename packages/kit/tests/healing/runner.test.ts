@@ -1,16 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-import type { HealingStrategy, MFEManifestEntry } from "../../src/index.js";
 import { createQuarantineRegistry } from "../../src/healing/quarantine.js";
-import {
-  MFEHealingError,
-  MFEQuarantinedError,
-  runWithHealing,
-} from "../../src/healing/runner.js";
-import {
-  forgivingStrategy,
-  strictStrategy,
-} from "../../src/healing/strategies.js";
+import { MFEHealingError, MFEQuarantinedError, runWithHealing } from "../../src/healing/runner.js";
+import { forgivingStrategy, strictStrategy } from "../../src/healing/strategies.js";
+import type { HealingStrategy, MFEManifestEntry } from "../../src/index.js";
 
 const entry: MFEManifestEntry = {
   name: "mfe_metrics",
@@ -51,10 +43,7 @@ describe("runWithHealing — happy path", () => {
 
 describe("runWithHealing — retry path", () => {
   it("retries with the strategy's delay then resolves", async () => {
-    const op = vi
-      .fn()
-      .mockRejectedValueOnce(new Error("net"))
-      .mockResolvedValueOnce("ok");
+    const op = vi.fn().mockRejectedValueOnce(new Error("net")).mockResolvedValueOnce("ok");
 
     const onRetry = vi.fn();
     const promise = runWithHealing({
@@ -88,9 +77,7 @@ describe("runWithHealing — retry path", () => {
     });
 
     // Two attempts: initial + one retry after 10ms wait.
-    const expectation = expect(promise).rejects.toBeInstanceOf(
-      MFEQuarantinedError,
-    );
+    const expectation = expect(promise).rejects.toBeInstanceOf(MFEQuarantinedError);
     await vi.advanceTimersByTimeAsync(10);
     await expectation;
     expect(op).toHaveBeenCalledTimes(2);
@@ -99,7 +86,7 @@ describe("runWithHealing — retry path", () => {
   });
 
   it("uses onMountError when kind is 'mount'", async () => {
-    const onMountError = vi.fn(() => ({ action: "quarantine" } as const));
+    const onMountError = vi.fn(() => ({ action: "quarantine" }) as const);
     const onLoadError = vi.fn();
     const strategy: HealingStrategy = {
       ...forgivingStrategy(),
@@ -173,9 +160,7 @@ describe("runWithHealing — fail and pre-quarantine", () => {
       kind: "load",
       strategy: buggyStrategy,
     });
-    const expectation = expect(promise).rejects.toBeInstanceOf(
-      MFEQuarantinedError,
-    );
+    const expectation = expect(promise).rejects.toBeInstanceOf(MFEQuarantinedError);
     await vi.advanceTimersByTimeAsync(5);
     await expectation;
     expect(op).toHaveBeenCalledTimes(2);

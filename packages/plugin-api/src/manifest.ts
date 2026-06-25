@@ -25,13 +25,7 @@ export const MFKIT_CONFIG_VERSION = 1 as const;
  * The `(string & {})` intersection preserves IDE autocomplete for the literal
  * union while still admitting arbitrary plugin-supplied strings.
  */
-export type FrameworkId =
-  | "react"
-  | "svelte"
-  | "vue"
-  | "angular"
-  | "lit"
-  | (string & {});
+export type FrameworkId = "react" | "svelte" | "vue" | "angular" | "lit" | (string & {});
 
 /**
  * Module Federation shared-dependency configuration, normalized for MFKit.

@@ -4,6 +4,13 @@
   "description": "MFKit runtime — Vite config generation, lifecycle contract, self-healing primitives, <MFKitOutlet>.",
   "license": "MIT",
   "author": "Rajat Kumar",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rajatkumar/mfkit.git",
+    "directory": "packages/kit"
+  },
+  "homepage": "https://github.com/rajatkumar/mfkit/tree/main/packages/kit#readme",
+  "bugs": "https://github.com/rajatkumar/mfkit/issues",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -34,7 +41,12 @@
       "import": "./dist/types.js"
     }
   },
-  "files": ["dist", "README.md", "LICENSE"],
+  "files": [
+    "dist",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -57,14 +69,30 @@
     "vite": ">=6.0.0"
   },
   "peerDependenciesMeta": {
-    "@analogjs/vite-plugin-angular": { "optional": true },
-    "@module-federation/vite": { "optional": true },
-    "@sveltejs/vite-plugin-svelte": { "optional": true },
-    "@vitejs/plugin-react": { "optional": true },
-    "@vitejs/plugin-vue": { "optional": true },
-    "react": { "optional": true },
-    "react-dom": { "optional": true },
-    "vite": { "optional": true }
+    "@analogjs/vite-plugin-angular": {
+      "optional": true
+    },
+    "@module-federation/vite": {
+      "optional": true
+    },
+    "@sveltejs/vite-plugin-svelte": {
+      "optional": true
+    },
+    "@vitejs/plugin-react": {
+      "optional": true
+    },
+    "@vitejs/plugin-vue": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    },
+    "vite": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@analogjs/vite-plugin-angular": "^1.16.0",

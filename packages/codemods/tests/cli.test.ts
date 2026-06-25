@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { main, type CliIO } from "../src/cli.js";
+import { type CliIO, main } from "../src/cli.js";
 import {
   __resetRegistry,
-  registerCodemod,
   type CodemodManifest,
   type MigrationContext,
   type MigrationResult,
+  registerCodemod,
 } from "../src/registry.js";
 
 interface Capture {
@@ -87,7 +87,7 @@ describe("list", () => {
     expect(await main(["list"], c.io)).toBe(0);
     const out = c.out.join("");
     expect(out).toMatch(/Registered codemods \(1\)/);
-    expect(out).toMatch(/v1_v2  v1 → v2/);
+    expect(out).toMatch(/v1_v2 {2}v1 → v2/);
   });
 });
 
@@ -123,8 +123,8 @@ describe("plan", () => {
     expect(await main(["plan", "--from", "1", "--to", "3"], c.io)).toBe(0);
     const out = c.out.join("");
     expect(out).toMatch(/Plan v1 → v3 \(2 steps\)/);
-    expect(out).toMatch(/1 → 2  v1_v2/);
-    expect(out).toMatch(/2 → 3  v2_v3/);
+    expect(out).toMatch(/1 → 2 {2}v1_v2/);
+    expect(out).toMatch(/2 → 3 {2}v2_v3/);
   });
 });
 
@@ -155,9 +155,7 @@ describe("up", () => {
       }),
     );
     const c = capture();
-    expect(
-      await main(["up", "--from", "1", "--to", "2", "--dry-run"], c.io),
-    ).toBe(0);
+    expect(await main(["up", "--from", "1", "--to", "2", "--dry-run"], c.io)).toBe(0);
     expect(observedDryRun).toBe(true);
     expect(c.out.join("")).toMatch(/Dry run complete/);
   });

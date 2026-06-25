@@ -11,11 +11,8 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { MFKIT_CONFIG_VERSION, type MFKitConfig } from "../../src/index.js";
-import {
-  DEFAULT_REMOTE_TYPES_PATH,
-  type WriteRemoteTypesResult,
-} from "../../src/types/write.js";
 import { watchRemoteTypes } from "../../src/types/watch.js";
+import { DEFAULT_REMOTE_TYPES_PATH, type WriteRemoteTypesResult } from "../../src/types/write.js";
 
 let cwd: string;
 

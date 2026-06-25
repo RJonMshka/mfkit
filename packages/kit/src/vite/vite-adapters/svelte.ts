@@ -1,6 +1,5 @@
-import { svelte } from "@sveltejs/vite-plugin-svelte";
-
 import type { FrameworkAdapter } from "@mfkit/plugin-api";
+import { svelte } from "@sveltejs/vite-plugin-svelte";
 
 const adapter: FrameworkAdapter = {
   id: "svelte",
