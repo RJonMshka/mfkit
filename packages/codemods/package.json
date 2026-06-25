@@ -6,11 +6,11 @@
   "author": "Rajat Kumar",
   "repository": {
     "type": "git",
-    "url": "https://github.com/rajatkumar/mfkit.git",
+    "url": "https://github.com/RJonMshka/mfkit.git",
     "directory": "packages/codemods"
   },
-  "homepage": "https://github.com/rajatkumar/mfkit/tree/main/packages/codemods#readme",
-  "bugs": "https://github.com/rajatkumar/mfkit/issues",
+  "homepage": "https://github.com/RJonMshka/mfkit/tree/main/packages/codemods#readme",
+  "bugs": "https://github.com/RJonMshka/mfkit/issues",
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",

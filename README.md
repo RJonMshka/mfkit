@@ -39,7 +39,7 @@ pnpm -r test
 
 ## Reference implementation
 
-The [DevNexus](https://github.com/rajatkumar/DevNexus) repo is the canonical
+The [DevNexus](https://github.com/RJonMshka/DevNexus) repo is the canonical
 example app, consuming `@mfkit/*` and doubling as MFKit's integration test.
 
 ## License

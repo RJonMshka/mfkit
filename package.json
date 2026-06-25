@@ -7,7 +7,7 @@
   "author": "Rajat Kumar",
   "repository": {
     "type": "git",
-    "url": "https://github.com/rajatkumar/mfkit.git"
+    "url": "https://github.com/RJonMshka/mfkit.git"
   },
   "scripts": {
     "build": "turbo run build",
