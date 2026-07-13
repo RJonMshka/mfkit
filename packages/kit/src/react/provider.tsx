@@ -3,9 +3,17 @@
 // registry. Outlets read these via context; each can override per-instance.
 
 import type { HealingStrategy, MFEManifestEntry } from "@mfkit/plugin-api";
-import { createContext, type ReactElement, type ReactNode, useContext, useMemo } from "react";
+import {
+  createContext,
+  type ReactElement,
+  type ReactNode,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 import { createQuarantineRegistry, type QuarantineRegistry } from "../healing/quarantine.js";
 import { forgivingStrategy } from "../healing/strategies.js";
+import { createEntriesCache } from "./entries-cache.js";
 
 import type { LoadRemote } from "./types.js";
 
@@ -34,16 +42,21 @@ export interface MFKitProviderProps {
 }
 
 export function MFKitProvider(props: MFKitProviderProps): ReactElement {
-  const value = useMemo<MFKitProviderValue>(() => {
-    const entries = new Map<string, MFEManifestEntry>();
-    for (const e of props.entries ?? []) entries.set(e.name, e);
-    return {
-      loadRemote: props.loadRemote,
-      strategy: props.strategy ?? forgivingStrategy(),
-      registry: props.registry ?? createQuarantineRegistry(),
-      entries,
-    };
-  }, [props.loadRemote, props.strategy, props.registry, props.entries]);
+  // Defaults are created once per provider instance, not per render. A fresh
+  // quarantine registry each render would silently reset failure counts, so an
+  // MFE would never actually reach its quarantine threshold.
+  const [fallbackStrategy] = useState(forgivingStrategy);
+  const [fallbackRegistry] = useState(createQuarantineRegistry);
+  const [resolveEntries] = useState(createEntriesCache);
+
+  const strategy = props.strategy ?? fallbackStrategy;
+  const registry = props.registry ?? fallbackRegistry;
+  const entries = resolveEntries(props.entries);
+
+  const value = useMemo<MFKitProviderValue>(
+    () => ({ loadRemote: props.loadRemote, strategy, registry, entries }),
+    [props.loadRemote, strategy, registry, entries],
+  );
 
   return <Context.Provider value={value}>{props.children}</Context.Provider>;
 }

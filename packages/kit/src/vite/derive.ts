@@ -3,6 +3,8 @@
 // Zero Vite import here so the logic is unit-testable without any framework
 // dependency installed. `vite.ts` consumes these and assembles UserConfig.
 
+import path from "node:path";
+
 import type {
   AdapterMode,
   FrameworkAdapter,
@@ -19,9 +21,33 @@ const AUTO_PORT_MAX = 5273;
 const AUTO_PORT_COUNT = AUTO_PORT_MAX - AUTO_PORT_MIN + 1;
 const DEFAULT_SHELL_PORT = 3000;
 const DEFAULT_REMOTE_ENTRY = "remoteEntry.js";
+const DEFAULT_EXPOSE_KEY = "./lifecycle";
 const DEFAULT_EXPOSES: Readonly<Record<string, string>> = Object.freeze({
-  "./lifecycle": "./src/lifecycle.ts",
+  [DEFAULT_EXPOSE_KEY]: "./src/lifecycle.ts",
 });
+
+// A React MFE's lifecycle is naturally `.tsx`, a Svelte one `.ts`. Probing beats
+// hardcoding: guessing wrong used to fail deep inside the MF plugin with no hint
+// that MFKit had invented the path (dx-findings #5). Order is the tiebreak when
+// several exist — first hit wins, deterministically.
+const LIFECYCLE_CANDIDATES: readonly string[] = Object.freeze([
+  "./src/lifecycle.ts",
+  "./src/lifecycle.tsx",
+  "./src/lifecycle.mts",
+  "./src/lifecycle.js",
+  "./src/lifecycle.jsx",
+  "./src/lifecycle.mjs",
+]);
+
+/**
+ * Filesystem access for expose inference. Injected rather than imported so
+ * `derive.ts` stays pure and unit-testable. Omit it and the kit falls back to
+ * the static default (`./src/lifecycle.ts`) without probing.
+ */
+export interface DeriveContext {
+  readonly cwd: string;
+  readonly exists: (absolutePath: string) => boolean;
+}
 
 export type InferenceSource =
   | "adapter-default"
@@ -70,20 +96,12 @@ export function deriveMFE(
   config: MFKitConfig,
   entry: MFEManifestEntry,
   adapter: FrameworkAdapter,
+  ctx?: DeriveContext,
 ): ResolvedMFE {
   const inferred: InferredField[] = [];
 
   const port = resolveMFEPort(config, entry, adapter, inferred);
-
-  const exposes = entry.exposes ?? DEFAULT_EXPOSES;
-  if (entry.exposes === undefined) {
-    inferred.push({
-      scope: entry.name,
-      field: "exposes",
-      value: JSON.stringify(DEFAULT_EXPOSES),
-      source: "kit-default",
-    });
-  }
+  const exposes = resolveExposes(entry, ctx, inferred);
 
   const shared = composeShared(adapter.defaultShared, config.shared, entry.shared);
 
@@ -150,6 +168,60 @@ export function buildRemotesMap(
     out[entry.name] = `${origin}/${file}`;
   }
   return out;
+}
+
+// User-supplied exposes always win (invariant 4 — inference never enforces).
+// Only the default map is probed.
+function resolveExposes(
+  entry: MFEManifestEntry,
+  ctx: DeriveContext | undefined,
+  inferred: InferredField[],
+): Readonly<Record<string, string>> {
+  if (entry.exposes !== undefined) return entry.exposes;
+
+  if (!ctx) {
+    inferred.push({
+      scope: entry.name,
+      field: "exposes",
+      value: JSON.stringify(DEFAULT_EXPOSES),
+      source: "kit-default",
+    });
+    return DEFAULT_EXPOSES;
+  }
+
+  // Two legitimate working directories, and kit is called from both: vite runs
+  // per-app (cwd IS the MFE dir, `entry.path` already consumed), while tooling
+  // and tests run from the workspace root (cwd + `entry.path` reaches the MFE).
+  // Probe both — the manifest path is root-relative either way, so we cannot
+  // tell them apart from the config alone.
+  const bases = [path.resolve(ctx.cwd, entry.path), path.resolve(ctx.cwd)];
+  const hit = LIFECYCLE_CANDIDATES.find((rel) =>
+    bases.some((base) => ctx.exists(path.resolve(base, rel))),
+  );
+
+  if (hit === undefined) {
+    throw new MFKitConfigError(
+      `MFE "${entry.name}" has no \`exposes\` and no lifecycle module was found under ${entry.path}/src/.\n` +
+        `Looked for: ${LIFECYCLE_CANDIDATES.join(", ")}\n` +
+        "Create one, or declare the entry explicitly:\n" +
+        `  { name: "${entry.name}", exposes: { "./lifecycle": "./src/<your-file>" } }`,
+      [
+        {
+          path: `mfes[${entry.name}].exposes`,
+          message: "no lifecycle module found to infer exposes from",
+        },
+      ],
+    );
+  }
+
+  const exposes = Object.freeze({ [DEFAULT_EXPOSE_KEY]: hit });
+  inferred.push({
+    scope: entry.name,
+    field: "exposes",
+    value: JSON.stringify(exposes),
+    source: "kit-default",
+  });
+  return exposes;
 }
 
 function resolveMFEPort(

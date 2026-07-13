@@ -63,6 +63,27 @@ try {
   if (t1 === t2) throw new Error(`mfe_clock is not ticking (stuck at ${t1})`);
   console.log("ok  mfe_clock ticking");
 
+  // The Svelte MFE's <style> block reaches the shell. A built remote extracts
+  // its CSS into an asset that only the remote's own index.html links, so
+  // without kit's css-injected-by-js the clock renders unstyled *in the shell*
+  // while looking fine standalone — invisible to every other assertion here
+  // (dx-findings #4).
+  const clockStyles = await page.evaluate(() => {
+    const el = document.querySelector('[data-mfkit-mount="mfe_clock"] .clock');
+    if (!el) return null;
+    const cs = getComputedStyle(el);
+    return { padding: cs.paddingTop, border: cs.borderTopWidth };
+  });
+  if (!clockStyles) {
+    throw new Error("mfe_clock did not render a .clock element");
+  }
+  if (clockStyles.padding === "0px" || clockStyles.border === "0px") {
+    throw new Error(
+      `mfe_clock rendered unstyled in the shell — remote CSS did not reach the host: ${JSON.stringify(clockStyles)}`,
+    );
+  }
+  console.log(`ok  mfe_clock styled in shell (padding ${clockStyles.padding})`);
+
   if (pageErrors.length > 0) {
     throw new Error(`page errors:\n  ${pageErrors.join("\n  ")}`);
   }

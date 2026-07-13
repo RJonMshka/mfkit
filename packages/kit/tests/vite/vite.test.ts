@@ -1,3 +1,5 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -7,6 +9,13 @@ import {
   MFKitConfigError,
 } from "../../src/index.js";
 import { mfkitMFE, mfkitShell } from "../../src/vite.js";
+
+// mfkitMFE probes the filesystem to infer the lifecycle expose, so these tests
+// run against a fixture workspace rather than a manifest pointing at nothing.
+const FIXTURE_CWD = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../fixtures/workspace",
+);
 
 // @module-federation/vite inspects the surrounding Vite build context and
 // returns no plugins outside one — which makes it useless for this integration
@@ -50,6 +59,7 @@ describe("mfkitMFE", () => {
     const cfg = await mfkitMFE(baseConfig, "mfe_a", {
       adapters: [stubAdapter],
       logInferred: false,
+      cwd: FIXTURE_CWD,
     });
 
     expect(cfg.server?.port).toBe(4001);
@@ -70,8 +80,75 @@ describe("mfkitMFE", () => {
       mfkitMFE(baseConfig, "missing", {
         adapters: [stubAdapter],
         logInferred: false,
+        cwd: FIXTURE_CWD,
       }),
     ).rejects.toBeInstanceOf(MFKitConfigError);
+  });
+
+  it("infers a .tsx lifecycle — a React MFE's lifecycle is not .ts", async () => {
+    federationCalls.length = 0;
+    const config: MFKitConfig = {
+      ...baseConfig,
+      mfes: [
+        { name: "mfe_tsx", framework: "react", path: "apps/mfe-tsx", route: "/x", port: 4002 },
+      ],
+    };
+
+    await mfkitMFE(config, "mfe_tsx", {
+      adapters: [stubAdapter],
+      logInferred: false,
+      cwd: FIXTURE_CWD,
+    });
+
+    expect(federationCalls[0]).toMatchObject({
+      exposes: { "./lifecycle": "./src/lifecycle.tsx" },
+    });
+  });
+
+  it("fails with an actionable MFKitConfigError when no lifecycle module exists", async () => {
+    const config: MFKitConfig = {
+      ...baseConfig,
+      mfes: [
+        { name: "mfe_empty", framework: "react", path: "apps/mfe-empty", route: "/e", port: 4003 },
+      ],
+    };
+
+    // Without the probe this failed deep inside the MF plugin, with nothing
+    // pointing at the invented path (dx-findings #5).
+    await expect(
+      mfkitMFE(config, "mfe_empty", {
+        adapters: [stubAdapter],
+        logInferred: false,
+        cwd: FIXTURE_CWD,
+      }),
+    ).rejects.toThrow(/no lifecycle module was found/);
+  });
+
+  it("honours user-supplied exposes without probing the filesystem", async () => {
+    federationCalls.length = 0;
+    const config: MFKitConfig = {
+      ...baseConfig,
+      mfes: [
+        {
+          name: "mfe_custom",
+          framework: "react",
+          path: "apps/does-not-exist",
+          route: "/c",
+          port: 4004,
+          exposes: { "./lifecycle": "./src/custom-entry.ts" },
+        },
+      ],
+    };
+
+    await mfkitMFE(config, "mfe_custom", {
+      adapters: [stubAdapter],
+      logInferred: false,
+      cwd: FIXTURE_CWD,
+    });
+
+    expect(federationCalls[0]).toMatchObject({
+      exposes: { "./lifecycle": "./src/custom-entry.ts" },
+    });
   });
 });
 

@@ -26,7 +26,7 @@ examples/
 - Step 8 — federated remote type generation (`@mfkit/kit/types`): **done** — `generateRemoteTypes(manifest, opts?)` is a pure manifest→string deriver emitting `declare module "<name>/<expose>"` blocks typed as `MFEDefinition`; `writeRemoteTypes` persists with an unchanged-skip guard; `watchRemoteTypes` is a thin fs.watch wrapper that takes a consumer `reload()` so kit never parses `mfkit.config.ts` itself. Default out path `.mfkit/generated/remotes.d.ts`. Subpath is pure node — enforced by `tests/vite/subpath-isolation.test.ts`
 - Step 10 — codemods scaffold (`@mfkit/codemods`): **done** — `CodemodManifest` with the single-step `toVersion === fromVersion + 1` invariant, in-memory `registerCodemod` / `listCodemods` / `planMigration` registry that refuses gaps and ambiguity, and a `mfkit-migrate` CLI with `list` / `plan` / `up [--dry-run]` subcommands wired end-to-end. Zero codemods registered — first real migration lands v0.3+. Tests in `packages/codemods/tests/{registry,cli}.test.ts`
 - Steps 3, 5 — DevNexus integration: **done** — DevNexus runs through the kit
-- `examples/minimal` — second consumer, in CI. Findings it produced live in `docs/dx-findings.md`; consult before hardening work
+- `examples/minimal` — second consumer, in CI. Findings it produced live in `docs/dx-findings.md`; all 7 are now fixed. Its e2e asserts computed styles (not just mount state) — the CSS-reaching-the-shell bug was invisible to every other assertion
 
 ## Load-bearing invariants
 
@@ -45,6 +45,9 @@ Valibot, not Zod. Smaller, tree-shakable, matches our `sideEffects: false` story
 - Angular uses `@analogjs/vite-plugin-angular`. The "native-federation" wording from older memory is outdated.
 - All current MFEs expose `"./lifecycle"` (plain). The `"././"` workaround from older memory is obsolete.
 - Shell remotes must be emitted in object form with `type: "module"` — vite-built remote entries are ESM; string remotes silently fall back to broken script-injection loading (RUNTIME-001).
+- MFE builds inline their CSS into the remote entry (`src/vite/css-inject.ts` → `cssInjectedByJs`, on by default, `injectCss: false` to opt out). A built remote's CSS asset is only referenced by its own `index.html`, which a federated host never loads — without this every MFE renders unstyled in the shell while looking fine standalone.
+- Generated federation configs pass `dts: false`. Kit owns remote types via `@mfkit/kit/types`; the MF plugin's dts machinery only adds a failed-to-prebundle warning on every dev boot.
+- `exposes` is inferred by probing `./src/lifecycle.{ts,tsx,mts,js,jsx,mjs}` — a React lifecycle is `.tsx`, a Svelte one `.ts`, and hardcoding either fails inside the MF plugin with no hint that kit invented the path. The probe checks both `cwd` and `cwd + entry.path`: vite runs per-app, tooling runs from the workspace root, and manifest paths are root-relative in both cases.
 
 ## TypeScript
 

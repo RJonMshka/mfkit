@@ -9,6 +9,8 @@
 // returned config can be returned from Vite's `defineConfig` directly or
 // merged with hand-written overrides via `mergeConfig`.
 
+import { existsSync } from "node:fs";
+
 import type {
   AdapterMode,
   FrameworkAdapter,
@@ -19,6 +21,7 @@ import type { Plugin, UserConfig } from "vite";
 
 import { MFKitConfigError } from "./index.js";
 import { resolveAdapter } from "./vite/adapter-resolve.js";
+import { cssInjectedByJs } from "./vite/css-inject.js";
 import { deriveMFE, deriveShell, findMFE } from "./vite/derive.js";
 import { logInferred } from "./vite/inference-log.js";
 
@@ -31,6 +34,15 @@ export interface MFKitViteOptions {
   readonly adapters?: readonly FrameworkAdapter[];
   /** Suppress the dev-mode inference log. Defaults true. */
   readonly logInferred?: boolean;
+  /**
+   * Fold an MFE's built CSS into its entry chunks so styles travel with the
+   * remote instead of being stranded in an asset only its own index.html
+   * references. Defaults true — federated remotes render unstyled without it.
+   * Set false if the host owns all styling (e.g. a shared design-system
+   * stylesheet) and you want to drop the duplicate bytes. Ignored by
+   * `mfkitShell` (a shell loads its own HTML).
+   */
+  readonly injectCss?: boolean;
 }
 
 export async function mfkitMFE(
@@ -44,7 +56,7 @@ export async function mfkitMFE(
 
   const entry = findMFE(config, name);
   const adapter = await resolveAdapter(entry.framework, opts.adapters);
-  const resolved = deriveMFE(config, entry, adapter);
+  const resolved = deriveMFE(config, entry, adapter, { cwd, exists: existsSync });
 
   const federation = await loadFederation();
   const frameworkPlugins = adapter.plugins({ entry, mode, cwd }) as readonly Plugin[];
@@ -54,15 +66,18 @@ export async function mfkitMFE(
     filename: resolved.remoteEntryFile,
     exposes: { ...resolved.exposes },
     shared: toMFShared(resolved.shared),
+    dts: false,
   });
 
   logInferred(entry.name, resolved.inferred, { mode, enabled: logEnabled });
+
+  const cssPlugins = (opts.injectCss ?? true) ? [cssInjectedByJs({ remoteName: entry.name })] : [];
 
   const config_: UserConfig = {
     server: { port: resolved.port, strictPort: true },
     preview: { port: resolved.port, strictPort: true },
     build: { target: "esnext", modulePreload: false, cssCodeSplit: false },
-    plugins: [...frameworkPlugins, ...asPluginArray(mfPlugin)],
+    plugins: [...frameworkPlugins, ...asPluginArray(mfPlugin), ...cssPlugins],
   };
 
   if (adapter.optimizeDepsExclude && adapter.optimizeDepsExclude.length > 0) {
@@ -90,10 +105,15 @@ export async function mfkitShell(
     cwd,
   }) as readonly Plugin[];
 
+  // `dts: false`: the MF plugin's own dts machinery pulls in
+  // dynamic-remote-type-hints-plugin, which Vite then fails to pre-bundle and
+  // warns about on every dev boot (dx-findings #6). Kit owns remote types via
+  // `@mfkit/kit/types` — this is redundant work producing a scary log line.
   const mfPlugin = federation({
     name: config.shell.name,
     remotes: toMFRemotes(resolved.remotes),
     shared: toMFShared(resolved.shared),
+    dts: false,
   });
 
   logInferred("shell", resolved.inferred, { mode, enabled: logEnabled });
