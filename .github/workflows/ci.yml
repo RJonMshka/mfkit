@@ -43,3 +43,9 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      - name: Example smoke test (HTTP)
+        run: pnpm --filter mfkit-example-minimal smoke
+
+      - name: Example e2e (headless Chrome)
+        run: pnpm --filter mfkit-example-minimal e2e

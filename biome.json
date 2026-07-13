@@ -30,6 +30,14 @@
     }
   },
   "files": {
-    "includes": ["**", "!**/dist", "!**/node_modules", "!**/.mfkit", "!**/coverage", "!**/.turbo"]
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/node_modules",
+      "!**/.mfkit",
+      "!**/coverage",
+      "!**/.turbo",
+      "!**/@mf-types"
+    ]
   }
 }

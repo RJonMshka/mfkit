@@ -9,3 +9,6 @@ coverage/
 .idea/
 .vscode/
 !.vscode/extensions.json
+
+# Module Federation dts-plugin artifacts
+@mf-types/
