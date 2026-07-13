@@ -18,6 +18,8 @@ import { MFKitConfigError } from "./index.js";
 
 export interface TurboTaskConfig {
   readonly dependsOn?: readonly string[];
+  /** Persistent siblings started alongside this task (Turbo >= 2.4). */
+  readonly with?: readonly string[];
   readonly outputs?: readonly string[];
   readonly cache?: boolean;
   readonly persistent?: boolean;
@@ -45,10 +47,10 @@ export interface GenerateTurboConfigOptions {
    */
   readonly baseTasks?: Readonly<Record<string, TurboTaskConfig>>;
   /**
-   * Generate `<shell-pkg>#dev` that depends on every `<mfe-pkg>#dev` so
-   * `turbo run dev` from the shell brings remotes up first. Defaults true.
-   * Disable if your shell tolerates async MFE startup and you prefer the
-   * parallel default.
+   * Generate `<shell-pkg>#dev` that starts every `<mfe-pkg>#dev` alongside it
+   * (via Turbo's `with`, since persistent tasks cannot be `dependsOn` targets)
+   * so `turbo run dev --filter <shell-pkg>` brings the remotes up too.
+   * Defaults true.
    */
   readonly orchestrateShellDev?: boolean;
 }
@@ -87,8 +89,10 @@ export function generateTurboConfig(
   if (orchestrate && config.mfes.length > 0) {
     const shellPkg = readPackageName(cwd, config.shell.path, "shell");
     const mfePkgs = config.mfes.map((m, i) => readPackageName(cwd, m.path, `mfes[${i}]`));
+    // `with`, not `dependsOn`: dev tasks are persistent (they never exit), and
+    // Turbo 2.x rejects depending on persistent tasks outright.
     tasks[`${shellPkg}#dev`] = {
-      dependsOn: mfePkgs.map((p) => `${p}#dev`),
+      with: mfePkgs.map((p) => `${p}#dev`),
       cache: false,
       persistent: true,
     };

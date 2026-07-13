@@ -92,7 +92,7 @@ export async function mfkitShell(
 
   const mfPlugin = federation({
     name: config.shell.name,
-    remotes: { ...resolved.remotes },
+    remotes: toMFRemotes(resolved.remotes),
     shared: toMFShared(resolved.shared),
   });
 
@@ -135,6 +135,18 @@ async function loadFederation(): Promise<FederationFn> {
       ],
     );
   }
+}
+
+// Kit-generated remotes are ESM (vite builds module remote entries). The MF
+// runtime defaults string remotes to script-injection ("var") loading, which
+// throws `Cannot use import statement outside a module` — so every remote is
+// declared in object form with an explicit `type: "module"`.
+function toMFRemotes(remotes: Readonly<Record<string, string>>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [name, entry] of Object.entries(remotes)) {
+    out[name] = { type: "module", name, entry };
+  }
+  return out;
 }
 
 function toMFShared(shared: SharedDependencyMap): Record<string, unknown> {

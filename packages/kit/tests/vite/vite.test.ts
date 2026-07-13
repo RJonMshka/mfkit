@@ -90,7 +90,11 @@ describe("mfkitShell", () => {
     expect(federationCalls).toHaveLength(1);
     expect(federationCalls[0]).toMatchObject({
       name: "shell",
-      remotes: { mfe_a: "http://localhost:4001/remoteEntry.js" },
+      // Object form with type "module": vite-built remote entries are ESM,
+      // and string remotes would default to broken script-injection loading.
+      remotes: {
+        mfe_a: { type: "module", name: "mfe_a", entry: "http://localhost:4001/remoteEntry.js" },
+      },
     });
     expect(federationCalls[0]?.exposes).toBeUndefined();
   });

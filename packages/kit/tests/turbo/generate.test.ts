@@ -78,14 +78,15 @@ describe("generateTurboConfig defaults", () => {
 });
 
 describe("generateTurboConfig shell-dev orchestration", () => {
-  it("wires <shell>#dev to depend on every <mfe>#dev", () => {
+  it("wires <shell>#dev to start every <mfe>#dev via `with`", () => {
     writePkg("apps/shell", "@host/shell");
     writePkg("apps/mfe-a", "@host/mfe-a");
     writePkg("apps/mfe-b", "@host/mfe-b");
 
     const out = generateTurboConfig(baseConfig(), { cwd });
+    // `with`, not `dependsOn` — Turbo 2.x rejects depending on persistent tasks.
     expect(out.tasks["@host/shell#dev"]).toEqual({
-      dependsOn: ["@host/mfe-a#dev", "@host/mfe-b#dev"],
+      with: ["@host/mfe-a#dev", "@host/mfe-b#dev"],
       cache: false,
       persistent: true,
     });
