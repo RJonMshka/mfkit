@@ -1,6 +1,6 @@
 {
   "name": "@mfkit/kit",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.0",
   "description": "MFKit runtime — Vite config generation, lifecycle contract, self-healing primitives, <MFKitOutlet>.",
   "license": "MIT",
   "author": "Rajat Kumar",

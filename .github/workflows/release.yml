@@ -8,6 +8,12 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    # Scoped here rather than raising the repo-wide default to write: the
+    # changesets action pushes the changeset-release/main branch and opens the
+    # version PR with GITHUB_TOKEN, and every other workflow stays read-only.
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
