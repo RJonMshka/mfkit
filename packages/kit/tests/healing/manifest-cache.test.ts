@@ -99,3 +99,14 @@ describe("createManifestCache", () => {
     );
   });
 });
+
+describe("createManifestCache — non-Error rejections", () => {
+  it("normalizes a thrown string into an Error on the stale path", async () => {
+    const cache = createManifestCache<{ v: number }>();
+    await cache.load("k", async () => ({ v: 1 }));
+    const result = await cache.load("k", () => Promise.reject("offline"));
+    expect(result).toMatchObject({ value: { v: 1 }, stale: true });
+    expect(result.error).toBeInstanceOf(Error);
+    expect(result.error?.message).toBe("offline");
+  });
+});
