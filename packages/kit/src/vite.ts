@@ -50,6 +50,15 @@ export interface MFKitViteOptions {
    * `mfkitShell` (a shell loads its own HTML).
    */
   readonly injectCss?: boolean;
+  /**
+   * Module Federation share strategy for the shell. Defaults to
+   * `"loaded-first"`: the shell's own singletons are used and remotes are
+   * fetched only when an outlet asks for them. The MF default,
+   * `"version-first"`, fetches *every* remote entry during startup to pick the
+   * highest shared version — so one slow or hanging remote held the whole
+   * shell's first render hostage (review R10). Ignored by `mfkitMFE`.
+   */
+  readonly shareStrategy?: "loaded-first" | "version-first";
 }
 
 export async function mfkitMFE(
@@ -129,6 +138,7 @@ export async function mfkitShell(
     name: config.shell.name,
     remotes: toMFRemotes(resolved.remotes),
     shared: toMFShared(resolved.shared),
+    shareStrategy: opts.shareStrategy ?? "loaded-first",
     dts: false,
   });
 

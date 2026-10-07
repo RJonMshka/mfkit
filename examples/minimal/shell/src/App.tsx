@@ -1,4 +1,4 @@
-import { createFederationLoader } from "@mfkit/kit/healing";
+import { createFederationLoader, strictStrategy } from "@mfkit/kit/healing";
 import { MFKitOutlet, MFKitProvider } from "@mfkit/kit/react";
 import * as federationRuntime from "@module-federation/runtime";
 
@@ -23,11 +23,20 @@ import config from "../../mfkit.config";
 // `loadRemote` returns `unknown` here and the outlet validates the shape.
 const loadRemote = createFederationLoader(federationRuntime);
 
+// Strategies are swappable per provider (or per outlet). `?mfkit-strategy=strict`
+// demonstrates the lockdown mode — fail fast, no retries — and is what the
+// fault-injection e2e uses to exercise it. Without it, the config's strategy
+// (here: the forgiving default) applies.
+const strictMode =
+  typeof location !== "undefined" &&
+  new URLSearchParams(location.search).get("mfkit-strategy") === "strict";
+const strategy = strictMode ? strictStrategy() : undefined;
+
 const sectionStyle = { marginTop: "2rem" } as const;
 
 export function App() {
   return (
-    <MFKitProvider loadRemote={loadRemote} config={config}>
+    <MFKitProvider loadRemote={loadRemote} config={config} {...(strategy ? { strategy } : {})}>
       <main style={{ fontFamily: "system-ui, sans-serif", maxWidth: 720, margin: "2rem auto" }}>
         <h1>{config.name} — MFKit shell</h1>
         <p>

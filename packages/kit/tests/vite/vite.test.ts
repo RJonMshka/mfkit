@@ -219,6 +219,19 @@ describe("mfkitShell", () => {
     expect(federationCalls[0]?.exposes).toBeUndefined();
   });
 
+  // Review R10: "version-first" initializes every remote at startup, so one
+  // slow remote delayed the whole shell's first render.
+  it("defaults shareStrategy to loaded-first, and lets the caller override it", async () => {
+    federationCalls.length = 0;
+    await mfkitShell(baseConfig, { adapters: [stubAdapter], logInferred: false });
+    await mfkitShell(baseConfig, {
+      adapters: [stubAdapter],
+      logInferred: false,
+      shareStrategy: "version-first",
+    });
+    expect(federationCalls.map((c) => c.shareStrategy)).toEqual(["loaded-first", "version-first"]);
+  });
+
   // Review A1: discovery used to be typed but never run.
   it("includes MFEs contributed by discovery in the remotes map, with root as discovery cwd", async () => {
     federationCalls.length = 0;

@@ -31,20 +31,26 @@ try {
  * the 1-based request count for remoteEntry.js and returns an HTTP status to
  * fail with, or null to pass through.
  */
-async function openWithFault(fault) {
+async function openWithFault(fault, { query = "", delayMs = 0, lifecycleBody } = {}) {
   const context = await browser.newContext();
   const page = await context.newPage();
   const stats = { entryRequests: 0 };
   await page.route(`${CLOCK}**`, async (route) => {
+    const { pathname } = new URL(route.request().url());
     // Match on pathname: retries refetch with a `?mfkit-retry=N` cache-buster.
-    if (new URL(route.request().url()).pathname === "/remoteEntry.js") {
+    if (pathname === "/remoteEntry.js") {
       stats.entryRequests += 1;
+      if (delayMs > 0) await new Promise((r) => setTimeout(r, delayMs));
       const status = fault(stats.entryRequests);
       if (status !== null) return route.fulfill({ status, body: "injected fault" });
     }
+    // Swap the exposed lifecycle chunk for a broken one (mount-time faults).
+    if (lifecycleBody && /^\/assets\/lifecycle-[\w-]+\.js$/.test(pathname)) {
+      return route.fulfill({ status: 200, contentType: "text/javascript", body: lifecycleBody });
+    }
     return route.continue();
   });
-  await page.goto("http://localhost:3000/", { waitUntil: "domcontentloaded" });
+  await page.goto(`http://localhost:3000/${query}`, { waitUntil: "domcontentloaded" });
   return { page, stats, close: () => context.close() };
 }
 
@@ -104,6 +110,59 @@ const scenarios = {
       await page.click(`${outlet("mfe_clock", "quarantined")} button`);
       await page.waitForSelector(outlet("mfe_clock", "mounted"), { timeout: 15_000 });
       return `recovered (${failedRequests} failed, ${stats.entryRequests - failedRequests} after retry)`;
+    } finally {
+      await close();
+    }
+  },
+
+  // A slow remote is not a failed one: the loading slot shows meanwhile and
+  // the outlet doesn't fire extra requests while it waits.
+  async "slow remote → loading slot, single request, then mounts"() {
+    const { page, stats, close } = await openWithFault(() => null, { delayMs: 3_000 });
+    try {
+      await page.waitForSelector(outlet("mfe_clock", "loading"), { timeout: 2_000 });
+      await helloStillWorks(page);
+      await page.waitForSelector(outlet("mfe_clock", "mounted"), { timeout: 15_000 });
+      if (stats.entryRequests !== 1)
+        throw new Error(`expected 1 request, saw ${stats.entryRequests}`);
+      return "loading slot shown during 3s latency";
+    } finally {
+      await close();
+    }
+  },
+
+  // The remote loads but its mount() throws: the mount-error path must
+  // quarantine with the real reason, not hang or blank the shell.
+  async "mount throws → quarantined with the mount error"() {
+    const { page, close } = await openWithFault(() => null, {
+      lifecycleBody:
+        'export default { mount() { throw new Error("injected mount failure"); }, unmount() {} };',
+    });
+    try {
+      const slot = await page.waitForSelector(outlet("mfe_clock", "quarantined"), {
+        timeout: 15_000,
+      });
+      const text = await slot.textContent();
+      if (!text?.includes("injected mount failure")) throw new Error(`reason missing: ${text}`);
+      await helloStillWorks(page);
+      return "quarantined with the mount error as reason";
+    } finally {
+      await close();
+    }
+  },
+
+  // Lockdown mode: strictStrategy fails fast — error slot, one request, no retries.
+  async "strict strategy → error slot after exactly one request"() {
+    const { page, stats, close } = await openWithFault(() => 503, {
+      query: "?mfkit-strategy=strict",
+    });
+    try {
+      await page.waitForSelector(outlet("mfe_clock", "error"), { timeout: 15_000 });
+      await page.waitForTimeout(1_000); // would-be retries have had time to fire
+      if (stats.entryRequests !== 1)
+        throw new Error(`expected 1 request, saw ${stats.entryRequests}`);
+      await helloStillWorks(page);
+      return "error slot, 1 request";
     } finally {
       await close();
     }
