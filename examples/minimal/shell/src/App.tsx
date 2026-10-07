@@ -27,7 +27,7 @@ const sectionStyle = { marginTop: "2rem" } as const;
 
 export function App() {
   return (
-    <MFKitProvider loadRemote={loadRemote} entries={config.mfes}>
+    <MFKitProvider loadRemote={loadRemote} config={config}>
       <main style={{ fontFamily: "system-ui, sans-serif", maxWidth: 720, margin: "2rem auto" }}>
         <h1>{config.name} — MFKit shell</h1>
         <p>

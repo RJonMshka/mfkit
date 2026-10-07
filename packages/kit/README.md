@@ -44,7 +44,7 @@ runtime caches failed loads):
 import { createFederationLoader } from "@mfkit/kit/healing";
 import * as federationRuntime from "@module-federation/runtime";
 
-<MFKitProvider loadRemote={createFederationLoader(federationRuntime)} entries={config.mfes}>
+<MFKitProvider loadRemote={createFederationLoader(federationRuntime)} config={config}>
 ```
 
 **Inline `entries={[...]}` and `props={{...}}` are safe.** The entry map is keyed

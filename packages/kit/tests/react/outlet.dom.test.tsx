@@ -10,7 +10,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { createQuarantineRegistry } from "../../src/healing/quarantine.js";
 import { forgivingStrategy, strictStrategy } from "../../src/healing/strategies.js";
-import type { MFEDefinition, MFEManifestEntry } from "../../src/index.js";
+import {
+  type MFEDefinition,
+  type MFEManifestEntry,
+  MFKIT_CONFIG_VERSION,
+  type MFKitConfig,
+} from "../../src/index.js";
 import { MFKitOutlet, MFKitProvider } from "../../src/react.js";
 
 afterEach(cleanup);
@@ -202,5 +207,29 @@ describe("<MFKitOutlet> in the DOM", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(() => render(<MFKitOutlet remote="mfe_a" />)).toThrow(/no `loadRemote` available/);
     spy.mockRestore();
+  });
+
+  // Review A1: config.healing / plugin healing used to require the consumer to
+  // call resolveHealingStrategy by hand.
+  it("takes entries and the healing strategy from `config`", async () => {
+    const config: MFKitConfig = {
+      version: MFKIT_CONFIG_VERSION,
+      name: "t",
+      shell: { name: "shell", framework: "react", path: "shell" },
+      mfes: entries,
+      plugins: [{ name: "lockdown", healing: strictStrategy() }],
+    };
+    const loadRemote = vi.fn(async () => {
+      throw new Error("down");
+    });
+    render(
+      <MFKitProvider loadRemote={loadRemote} config={config}>
+        <MFKitOutlet remote="mfe_a" />
+      </MFKitProvider>,
+    );
+    // Strict → error slot after one attempt (forgiving would retry, then quarantine).
+    await waitFor(() => expect(stateOf()).toBe("error"));
+    expect(loadRemote).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("alert").textContent).toContain("Alpha"); // label from config.mfes
   });
 });

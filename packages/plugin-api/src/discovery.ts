@@ -6,8 +6,13 @@
  * augment or replace it: glob the `apps/*` directory, query an npm registry
  * for `mfkit-template`-tagged packages, fetch from a federation graph API.
  *
- * Multiple strategies may compose — each contributes entries; MFKit dedupes
- * by `name` with last-wins precedence (manifest first, then plugins in order).
+ * Multiple strategies compose: `config.discovery` runs first, then each
+ * plugin's in order. Discovered entries are *added* to the manifest; an entry
+ * whose `name` the manifest already declares is ignored (user-declared values
+ * always win). Among discovered entries, a later strategy wins a name tie.
+ * The merged list is validated like a hand-written manifest. Run by
+ * `resolveConfig` (`@mfkit/kit`) at build time, so strategies may use the
+ * filesystem.
  */
 
 import type { MFEManifestEntry, MFKitConfig } from "./manifest.js";

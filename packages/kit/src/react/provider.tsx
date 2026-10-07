@@ -2,7 +2,7 @@
 // a remote loader, a default healing strategy, and a shared quarantine
 // registry. Outlets read these via context; each can override per-instance.
 
-import type { HealingStrategy, MFEManifestEntry } from "@mfkit/plugin-api";
+import type { HealingStrategy, MFEManifestEntry, MFKitConfig } from "@mfkit/plugin-api";
 import {
   createContext,
   type ReactElement,
@@ -12,7 +12,7 @@ import {
   useState,
 } from "react";
 import { createQuarantineRegistry, type QuarantineRegistry } from "../healing/quarantine.js";
-import { forgivingStrategy } from "../healing/strategies.js";
+import { resolveHealingStrategy } from "../healing.js";
 import { createEntriesCache } from "./entries-cache.js";
 
 import type { LoadRemote } from "./types.js";
@@ -29,7 +29,13 @@ const Context = createContext<MFKitProviderValue | null>(null);
 export interface MFKitProviderProps {
   /** Resolver for federation remotes — typically `loadRemote` from the MF runtime. */
   readonly loadRemote: LoadRemote;
-  /** Host-wide default healing strategy. Defaults to `forgivingStrategy()`. */
+  /**
+   * The manifest. When given, `entries` defaults to `config.mfes` and
+   * `strategy` to the config's healing (`config.healing`, else the last
+   * plugin's, else forgiving). Explicit `entries`/`strategy` props win.
+   */
+  readonly config?: MFKitConfig;
+  /** Host-wide default healing strategy. Defaults to the config's, else `forgivingStrategy()`. */
   readonly strategy?: HealingStrategy;
   /** Shared quarantine registry. Defaults to a fresh in-memory registry. */
   readonly registry?: QuarantineRegistry;
@@ -45,13 +51,15 @@ export function MFKitProvider(props: MFKitProviderProps): ReactElement {
   // Defaults are created once per provider instance, not per render. A fresh
   // quarantine registry each render would silently reset failure counts, so an
   // MFE would never actually reach its quarantine threshold.
-  const [fallbackStrategy] = useState(forgivingStrategy);
+  // Read once: a config's strategy is fixed for the provider's lifetime, and
+  // re-resolving per render would hand outlets a new strategy identity.
+  const [fallbackStrategy] = useState(() => resolveHealingStrategy(props.config ?? NO_CONFIG));
   const [fallbackRegistry] = useState(createQuarantineRegistry);
   const [resolveEntries] = useState(createEntriesCache);
 
   const strategy = props.strategy ?? fallbackStrategy;
   const registry = props.registry ?? fallbackRegistry;
-  const entries = resolveEntries(props.entries);
+  const entries = resolveEntries(props.entries ?? props.config?.mfes);
 
   const value = useMemo<MFKitProviderValue>(
     () => ({ loadRemote: props.loadRemote, strategy, registry, entries }),
@@ -60,6 +68,9 @@ export function MFKitProvider(props: MFKitProviderProps): ReactElement {
 
   return <Context.Provider value={value}>{props.children}</Context.Provider>;
 }
+
+// resolveHealingStrategy only reads `healing` and `plugins`.
+const NO_CONFIG = {} as MFKitConfig;
 
 /** Read the active provider value, or `null` when none is in scope. */
 export function useMFKitContext(): MFKitProviderValue | null {

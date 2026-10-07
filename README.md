@@ -73,7 +73,7 @@ import * as federationRuntime from "@module-federation/runtime";
 
 const loadRemote = createFederationLoader(federationRuntime);
 
-<MFKitProvider loadRemote={loadRemote} entries={config.mfes}>
+<MFKitProvider loadRemote={loadRemote} config={config}>
   <MFKitOutlet remote="mfe_clock" />
 </MFKitProvider>
 ```

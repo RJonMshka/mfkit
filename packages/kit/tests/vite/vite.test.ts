@@ -218,4 +218,21 @@ describe("mfkitShell", () => {
     });
     expect(federationCalls[0]?.exposes).toBeUndefined();
   });
+
+  // Review A1: discovery used to be typed but never run.
+  it("includes MFEs contributed by discovery in the remotes map, with root as discovery cwd", async () => {
+    federationCalls.length = 0;
+    const discover = vi.fn(async () => [
+      { name: "mfe_found", framework: "react", path: "apps/found", route: "/found", port: 4555 },
+    ]);
+    await mfkitShell(
+      { ...baseConfig, discovery: { id: "glob", discover } },
+      { adapters: [stubAdapter], logInferred: false, mode: "dev", root: "/workspace" },
+    );
+    expect(discover).toHaveBeenCalledWith(expect.objectContaining({ cwd: "/workspace" }));
+    expect(federationCalls[0]?.remotes).toMatchObject({
+      mfe_a: { entry: "http://localhost:4001/remoteEntry.js" },
+      mfe_found: { type: "module", entry: "http://localhost:4555/remoteEntry.js" },
+    });
+  });
 });
