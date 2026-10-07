@@ -12,7 +12,7 @@ hard — there are ~6 files to author once, regardless of how many MFEs.
 
 ## What you need
 
-- Node ≥ 20, pnpm ≥ 10.
+- Node ≥ 22, pnpm ≥ 10.
 - A monorepo. pnpm workspaces + Turbo recommended (kit assumes this layout
   in the Turbo generator), but any setup that ships per-package `package.json`s
   with names will work.
@@ -61,7 +61,7 @@ export default defineConfig({
       framework: "svelte",
       route: "/metrics",
       path: "apps/mfe-metrics",
-      // port omitted → adapter default (or auto-assigned in 5173..5273)
+      // port omitted → auto-assigned in 5173..5273 (deterministic per name)
     },
     {
       name: "mfe_config",
