@@ -6,7 +6,7 @@
 > needed; the second is why `examples/minimal` found 7 bugs that 138 unit
 > tests didn't.
 >
-> Status as of 2026-10-07 (after v0.1.0-alpha.2). Update the "Today" columns when a layer lands.
+> Status as of 2026-10-07 (after v0.1.0-beta). Update the "Today" columns when a layer lands.
 
 ---
 
@@ -19,13 +19,13 @@ to see it; when a higher layer catches one, add a test one layer down too.
 
 | # | Layer | Answers | Tooling | Today | Runs |
 |---|---|---|---|---|---|
-| L1 | **Unit (pure)** | Is the derivation/state-machine logic right? | vitest, `packages/*/tests` | 208 tests; coverage reported (`pnpm test:coverage`): kit 91% lines / 85% branches | every PR |
-| L2 | **Contract types** | Does the public type surface accept/reject what it should? | vitest `expectTypeOf` | plugin-api only (15) | every PR |
+| L1 | **Unit (pure)** | Is the derivation/state-machine logic right? | vitest, `packages/*/tests` | ✅ 250+ tests incl. fast-check port properties; coverage **gated**: healing/derive ≥ 95% branches (98%+ today), kit ≥ 90% lines / 85% branches | every PR |
+| L2 | **Contract types** | Does the public type surface accept/reject what it should? | committed `api-report.d.ts` per package + `expectTypeOf` | ✅ `pnpm api:check` fails CI on any public `.d.ts` change | every PR |
 | L3 | **Component (DOM)** | Does `<MFKitOutlet>` render the right slot, not remount, clean up? | vitest + happy-dom + @testing-library/react | ✅ 9 tests (`outlet.dom.test.tsx`): slots, no-remount, StrictMode, retry, quarantine, cleanup | every PR |
 | L4 | **Package** | Does what we *publish* resolve and import for a consumer? | publint, are-the-types-wrong, pack-and-install | ✅ publint + attw; `pnpm pack-check`: Svelte-only install, no React pulled in, bin runs | every PR |
-| L5 | **Example e2e (build)** | Does a real shell load real remotes in a real browser, styled? | `examples/minimal` smoke + e2e, playwright-core | ✅ 2 MFEs, mount/props/tick/computed-style | every PR |
-| L6 | **Fault injection** | Does self-healing actually heal? | Playwright request routing | ✅ hard outage, transient outage, recovery (`pnpm --filter mfkit-example-minimal faults`) | every PR |
-| L7 | **Matrix** | Do other framework/tool versions work? | CI matrix over example variants | Node 22/24; example on React 19, kit DOM tests on React 18 | nightly |
+| L5 | **Example e2e (build)** | Does a real shell load real remotes in a real browser, styled? | `examples/minimal` smoke + e2e, playwright-core | ✅ 4 MFEs (React, Svelte, Vue, Lit): mount, props, interactivity, computed styles, strict CSP; **build and dev mode** | every PR |
+| L6 | **Fault injection** | Does self-healing actually heal? | Playwright request routing | ✅ all six scenarios (`pnpm --filter mfkit-example-minimal faults`) | every PR |
+| L7 | **Matrix** | Do other framework/tool versions work? | CI matrix over example variants | Node 22/24; React 18 (kit DOM) + 19 (example); Svelte, Vue, Lit. Angular and Windows pending | nightly |
 | L8 | **Canary consumer** | Does a real app still work on `main`? | DevNexus against `@mfkit/*@alpha` | manual | weekly / pre-release |
 
 ### L1 — Unit: keep doing what works, close three gaps
@@ -135,7 +135,8 @@ immediately, exposing the two most serious bugs of the review: one remote
 outage blanked the entire shell (R7), and retries never re-fetched because the
 MF runtime caches failed loads (R8). Both are fixed. The hard-outage row now
 asserts exactly `maxAttempts` network fetches, so R8 can't silently return.
-Remaining rows (slow remote, mount throws, strict strategy) are beta work.
+**beta:** the remaining three rows landed. The slow-remote row immediately
+found R10: one slow remote delayed the whole shell's first render.
 
 ### L7 — Compatibility matrix (nightly)
 
@@ -167,13 +168,13 @@ re-run it manually against the release candidate.
 
 | Gate | alpha.2 | beta | v0.1.0 |
 |---|---|---|---|
-| L1 coverage | ✅ reported | healing/derive ≥ 95% br | ratchet holds |
-| L2 API report | — | ✅ blocking | ✅ |
+| L1 coverage | ✅ reported | ✅ healing/derive ≥ 95% br | ratchet holds |
+| L2 API report | — | ✅ blocking (done) | ✅ |
 | L3 outlet DOM suite | ✅ done | ✅ | ✅ |
 | L4 pack-install + Svelte-only | ✅ done | ✅ | ✅ |
-| L5 dev-mode e2e | — | ✅ | ✅ |
-| L6 fault scenarios | ✅ transient + hard + recovery | all 6 | all 6 |
-| L7 matrix | ✅ React 19 | + vue, lit | + angular, windows |
+| L5 dev-mode e2e | — | ✅ done | ✅ |
+| L6 fault scenarios | ✅ transient + hard + recovery | ✅ all 6 | all 6 |
+| L7 matrix | ✅ React 19 | ✅ + vue, lit | + angular, windows |
 | L8 DevNexus canary | manual | weekly automated | green 4 weeks running |
 
 ---
@@ -246,11 +247,12 @@ This metric is that gate.
 
 ## Part 3 — Next steps (in order)
 
-Done in alpha.2: L3 DOM suite, L6 hard/transient/recovery, L4 pack-and-install
-+ Svelte-only, coverage reporting, React 19.
+Done through beta: L1 properties + gates, L2 API reports, L3 DOM suite, L4
+pack-and-install, L5 dev mode, L6 all six, L7 React 18/19 + Vue + Lit.
 
-1. Property tests for ports (fast-check), including MFE/shell agreement.
-2. L5 dev-mode e2e: dev and build take different paths; only build is tested.
-3. L6 remaining rows: slow remote, mount throws, strict strategy.
-4. Coverage thresholds: healing/derive ≥ 95% branches, then ratchet.
-5. E1 with one outside developer. Write down everything.
+1. L7 Angular: add an Angular MFE (needs `@angular/compiler-cli`); the adapter
+   has never run end to end.
+2. L7 Windows + macOS nightly: path handling in `derive.ts` / `turbo.ts`.
+3. L8 DevNexus canary as a scheduled workflow.
+4. E1 with one outside developer. Write down everything.
+5. E5 size budgets per subpath (`size-limit`).
