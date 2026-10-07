@@ -40,7 +40,7 @@ export function App() {
       <main style={{ fontFamily: "system-ui, sans-serif", maxWidth: 720, margin: "2rem auto" }}>
         <h1>{config.name} — MFKit shell</h1>
         <p>
-          Two federated MFEs, one manifest. React and Svelte, each mounted through{" "}
+          Four federated MFEs, one manifest. React, Svelte, Vue, and Lit, each mounted through{" "}
           <code>&lt;MFKitOutlet&gt;</code> with the default forgiving healing strategy.
         </p>
 
@@ -65,6 +65,16 @@ export function App() {
               </div>
             )}
           />
+        </section>
+
+        <section style={sectionStyle}>
+          <h2>mfe_vue — Vue</h2>
+          <MFKitOutlet remote="mfe_vue" />
+        </section>
+
+        <section style={sectionStyle}>
+          <h2>mfe_lit — Lit</h2>
+          <MFKitOutlet remote="mfe_lit" />
         </section>
       </main>
     </MFKitProvider>

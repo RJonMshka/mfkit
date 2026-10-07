@@ -59,6 +59,8 @@ try {
     // MFE dev servers must be up before the shell asks for their entries.
     await waitFor("http://localhost:5175/remoteEntry.js", 60_000);
     await waitFor("http://localhost:5176/remoteEntry.js", 60_000);
+    await waitFor("http://localhost:5177/remoteEntry.js", 60_000);
+    await waitFor("http://localhost:5178/remoteEntry.js", 60_000);
   }
 
   const page = await browser.newPage();
@@ -68,7 +70,7 @@ try {
   await page.goto("http://localhost:3000/", { waitUntil: "domcontentloaded" });
 
   // Both outlets reach the "mounted" healing state.
-  for (const name of ["mfe_hello", "mfe_clock"]) {
+  for (const name of ["mfe_hello", "mfe_clock", "mfe_vue", "mfe_lit"]) {
     await page.waitForSelector(`[data-mfkit-outlet="${name}"][data-mfkit-state="mounted"]`, {
       timeout: 15_000,
     });
@@ -118,6 +120,31 @@ try {
     );
   }
   console.log(`ok  mfe_clock styled in shell (padding ${clockStyles.padding})`);
+
+  // Vue (testing plan L7): scoped SFC styles reach the shell through kit's
+  // CSS injection, and the app is interactive.
+  const vue = await page.evaluate(() => {
+    const el = document.querySelector('[data-mfkit-mount="mfe_vue"] .vue-card');
+    return el ? { padding: getComputedStyle(el).paddingTop, text: el.textContent } : null;
+  });
+  if (!vue || vue.padding !== "12px" || !vue.text?.includes("/vue")) {
+    throw new Error(`mfe_vue mounted wrong or unstyled: ${JSON.stringify(vue)}`);
+  }
+  await page.click('[data-mfkit-mount="mfe_vue"] button');
+  const vueClicks = await page.textContent('[data-mfkit-mount="mfe_vue"] button');
+  if (!vueClicks?.includes("1")) throw new Error(`mfe_vue not interactive: ${vueClicks}`);
+  console.log("ok  mfe_vue styled (scoped SFC CSS) + interactive");
+
+  // Lit: shadow-DOM styles travel with the element; basePath reaches it.
+  const lit = await page.evaluate(() => {
+    const host = document.querySelector('[data-mfkit-mount="mfe_lit"] mfkit-lit-badge');
+    const card = host?.shadowRoot?.querySelector(".lit-card");
+    return card ? { padding: getComputedStyle(card).paddingTop, text: card.textContent } : null;
+  });
+  if (!lit || lit.padding !== "10px" || !lit.text?.includes("/lit")) {
+    throw new Error(`mfe_lit mounted wrong or unstyled: ${JSON.stringify(lit)}`);
+  }
+  console.log("ok  mfe_lit styled (shadow DOM) with basePath");
 
   if (pageErrors.length > 0) {
     throw new Error(`page errors:\n  ${pageErrors.join("\n  ")}`);

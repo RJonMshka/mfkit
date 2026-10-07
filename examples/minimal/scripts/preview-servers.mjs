@@ -11,6 +11,8 @@ export const apps = [
   { dir: "shell", port: 3000, path: "/", expect: '<div id="root">' },
   { dir: "mfe-hello", port: 5175, path: "/remoteEntry.js", expect: "lifecycle" },
   { dir: "mfe-clock", port: 5176, path: "/remoteEntry.js", expect: "lifecycle" },
+  { dir: "mfe-vue", port: 5177, path: "/remoteEntry.js", expect: "lifecycle" },
+  { dir: "mfe-lit", port: 5178, path: "/remoteEntry.js", expect: "lifecycle" },
 ];
 
 /**

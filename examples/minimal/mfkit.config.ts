@@ -34,5 +34,21 @@ export default defineConfig({
       port: 5176,
       label: "Clock (Svelte)",
     },
+    {
+      name: "mfe_vue",
+      framework: "vue",
+      route: "/vue",
+      path: "mfe-vue",
+      port: 5177,
+      label: "Counter (Vue)",
+    },
+    {
+      name: "mfe_lit",
+      framework: "lit",
+      route: "/lit",
+      path: "mfe-lit",
+      port: 5178,
+      label: "Badge (Lit)",
+    },
   ],
 });
