@@ -1,5 +1,13 @@
 # @mfkit-example/mfe-clock
 
+## 0.0.1-alpha.1
+
+### Patch Changes
+
+- Updated dependencies [6743676]
+- Updated dependencies [0131a4a]
+  - @mfkit/kit@0.1.0-alpha.1
+
 ## 0.0.1-alpha.0
 
 ### Patch Changes

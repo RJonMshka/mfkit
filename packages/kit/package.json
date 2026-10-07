@@ -1,7 +1,7 @@
 {
   "name": "@mfkit/kit",
-  "version": "0.1.0-alpha.0",
-  "description": "MFKit runtime \u2014 Vite config generation, lifecycle contract, self-healing primitives, <MFKitOutlet>.",
+  "version": "0.1.0-alpha.1",
+  "description": "MFKit runtime — Vite config generation, lifecycle contract, self-healing primitives, <MFKitOutlet>.",
   "keywords": [
     "mfkit",
     "module-federation",

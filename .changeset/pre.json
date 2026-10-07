@@ -10,5 +10,11 @@
     "@mfkit-example/mfe-hello": "0.0.0",
     "@mfkit-example/shell": "0.0.0"
   },
-  "changesets": ["eighty-pianos-repeat", "initial-alpha", "mighty-moons-teach"]
+  "changesets": [
+    "eighty-pianos-repeat",
+    "initial-alpha",
+    "mighty-moons-teach",
+    "quiet-retries-refetch",
+    "sharp-ports-agree"
+  ]
 }

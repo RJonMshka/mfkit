@@ -1,6 +1,6 @@
 {
   "name": "@mfkit/codemods",
-  "version": "0.1.0-alpha.0",
+  "version": "0.1.0-alpha.1",
   "description": "MFKit upgrade tooling. Phase 1 ships the infrastructure; codemods land v0.3+.",
   "keywords": [
     "mfkit",

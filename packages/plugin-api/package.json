@@ -1,7 +1,7 @@
 {
   "name": "@mfkit/plugin-api",
-  "version": "0.1.0-alpha.0",
-  "description": "Stable TypeScript contract surface for MFKit. Types only \u2014 zero runtime.",
+  "version": "0.1.0-alpha.1",
+  "description": "Stable TypeScript contract surface for MFKit. Types only — zero runtime.",
   "keywords": [
     "mfkit",
     "module-federation",
