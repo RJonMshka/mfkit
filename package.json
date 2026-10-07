@@ -13,6 +13,8 @@
     "build": "turbo run build",
     "lint": "biome check .",
     "pack-check": "node scripts/pack-check.mjs",
+    "api:check": "node scripts/api-report.mjs --check",
+    "api:update": "node scripts/api-report.mjs",
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
     "typecheck": "turbo run typecheck",

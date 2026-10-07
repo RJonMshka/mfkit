@@ -137,6 +137,10 @@ jobs:
             echo "::endgroup::"
           done
 
+      # L2: the committed API reports must match the built .d.ts surface.
+      - name: API report is up to date
+        run: pnpm api:check
+
       # L4: install the tarballs into a fresh Svelte-only project and use them —
       # proves optional peers stay optional and the mfkit-migrate bin runs.
       - name: Pack, install, and use

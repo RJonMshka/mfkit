@@ -38,7 +38,8 @@
       "!**/coverage",
       "!**/.turbo",
       "!**/@mf-types",
-      "!**/.claude/settings.local.json"
+      "!**/.claude/settings.local.json",
+      "!**/api-report.d.ts"
     ]
   }
 }
