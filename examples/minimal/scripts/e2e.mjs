@@ -4,9 +4,36 @@
 // Uses playwright-core with the system Chrome (channel: "chrome") — no
 // browser download. GitHub's ubuntu runners ship Chrome; locally the test
 // skips with a warning when Chrome is missing (fails instead when CI=true).
+
+import { createServer } from "node:http";
 import { chromium } from "playwright-core";
 
 import { startPreviewServers, waitFor } from "./preview-servers.mjs";
+
+/** Proxy the shell on :3100, adding a strict style CSP and the nonce meta tag. */
+function startCspProxy(nonce) {
+  const server = createServer(async (req, res) => {
+    const upstream = await fetch(`http://localhost:3000${req.url}`);
+    const headers = Object.fromEntries(upstream.headers);
+    delete headers["content-encoding"];
+    delete headers["content-length"];
+    let body = Buffer.from(await upstream.arrayBuffer());
+    if ((headers["content-type"] ?? "").includes("text/html")) {
+      headers["content-security-policy"] = `style-src 'nonce-${nonce}'`;
+      body = Buffer.from(
+        body
+          .toString("utf8")
+          .replace("<head>", `<head><meta property="csp-nonce" nonce="${nonce}">`),
+      );
+    }
+    res.writeHead(upstream.status, headers).end(body);
+  });
+  return new Promise((resolve) =>
+    server.listen(3100, () =>
+      resolve({ url: "http://localhost:3100/", close: () => new Promise((r) => server.close(r)) }),
+    ),
+  );
+}
 
 let browser;
 try {
@@ -87,6 +114,39 @@ try {
   if (pageErrors.length > 0) {
     throw new Error(`page errors:\n  ${pageErrors.join("\n  ")}`);
   }
+
+  // Strict CSP (review O6): styles only with a matching nonce. The host
+  // advertises it via <meta property="csp-nonce">, Vite's convention; kit's
+  // injected <style> must pick it up or the remote renders unstyled again.
+  const nonce = "mfkitE2eNonce";
+  // Served through a local proxy rather than Playwright's route.fulfill: a
+  // fulfilled document has no network address, so Chrome's Local Network
+  // Access check would block its requests to the localhost remotes.
+  const cspProxy = await startCspProxy(nonce);
+  const cspPage = await browser.newPage();
+  const cspViolations = [];
+  cspPage.on("console", (m) => {
+    if (m.type() === "error" && /Content Security Policy/i.test(m.text())) {
+      cspViolations.push(m.text());
+    }
+  });
+  await cspPage.goto(cspProxy.url, { waitUntil: "domcontentloaded" });
+  await cspPage.waitForSelector('[data-mfkit-outlet="mfe_clock"][data-mfkit-state="mounted"]', {
+    timeout: 15_000,
+  });
+  const cspPadding = await cspPage.evaluate(() => {
+    const el = document.querySelector('[data-mfkit-mount="mfe_clock"] .clock');
+    return el ? getComputedStyle(el).paddingTop : null;
+  });
+  if (!cspPadding || cspPadding === "0px") {
+    throw new Error(
+      `mfe_clock unstyled under strict CSP (padding ${cspPadding}); violations:\n  ${cspViolations.join("\n  ")}`,
+    );
+  }
+  console.log(`ok  mfe_clock styled under strict CSP via nonce (padding ${cspPadding})`);
+  await cspPage.close();
+  await cspProxy.close();
+
   console.log("e2e passed");
 } catch (err) {
   console.error(`e2e failed: ${err instanceof Error ? err.message : String(err)}`);
