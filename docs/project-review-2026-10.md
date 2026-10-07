@@ -45,6 +45,18 @@ The gaps are of three kinds:
 | R5 | `kit/vite` adapters | **`MFKitPlugin.frameworkAdapters` was never read**, yet the unknown-framework error tells users to register adapters there. | `grep`: no consumer of `config.plugins`. | `collectAdapters()`: `opts.adapters` > plugins (last wins) > built-ins. |
 | R6 | `kit/vite` CSS inject | **Sourcemaps shifted by one line** when `build.sourcemap` is on: the snippet was prepended after Rollup had produced maps. | Code read (`generateBundle` edits `chunk.code` without touching `chunk.map`). | Snippet appended instead; still runs during remote load, before `mount`. |
 
+### Found while building the alpha.2 test layers
+
+The new fault-injection e2e (testing plan L6) was the first test to ever take
+a remote down. It found the two most serious bugs in this review, both
+invisible to every test that only exercises the happy path.
+
+| # | Area | Bug | How it was confirmed | Fix |
+|---|---|---|---|---|
+| R7 | example / integration pattern | **One remote down blanks the entire shell.** The example loaded remotes with `import("mfe_x/lifecycle")`. `@module-federation/vite` collects every remote imported by specifier and preloads them in its host bootstrap with `Promise.all`; the app module only loads if all succeed. A 503 on one remote → empty `#root`, no outlets, healing never runs. This is the exact failure MFKit exists to prevent. | L6 hard-outage scenario: `#root` empty; bootstrap source shows `await Promise.all(__mfRemotePreloads)` before the app import. | Shell loads remotes through the MF runtime's `loadRemote(id)` (no preload). Integration guide and both READMEs now warn against specifier imports in the shell. |
+| R8 | `kit/healing` | **Retries never retried.** The MF runtime memoizes remote-entry loads per (name, URL) in `globalLoading`, rejections included, and the browser module map caches failed ESM imports. Every retry replayed the first failure with zero network requests. An MFE that blipped once stayed down until reload, and "retry with backoff" was a no-op. | L6: hard outage made 1 request across 3 attempts; transient outage never recovered. Runtime source: `getRemoteEntry` caches the promise before `.catch`. | `createFederationLoader(runtime)` in `@mfkit/kit/healing`: after a failure, re-registers the remote (`force: true`) under a `?mfkit-retry=N` entry URL, which is a fresh cache key for both caches. Fault e2e asserts exactly `maxAttempts` fetches. |
+| R9 | `kit/vite` adapter-resolve | **Missing-peer hint named the wrong package.** With `@analogjs/vite-plugin-angular` installed but *its* peer `@angular/compiler-cli` missing, kit said "needs @analogjs/vite-plugin-angular installed", because it only checked whether the peer's name appeared anywhere in the error (it did, in the import path). | Loading the Angular adapter in this repo. | Hint parses the package from `Cannot find package '…'` and says "X is not installed (required by Y)". |
+
 Small fixes alongside: the inverted `logInferred` JSDoc, a false claim in
 `error-boundary.tsx` (see O3), a stale comment in `examples/minimal` (the
 example now dogfoods `.tsx` lifecycle inference instead of hardcoding
@@ -58,7 +70,11 @@ example now dogfoods `.tsx` lifecycle inference instead of hardcoding
 Ordered by adoption impact. "Contract" means the fix touches
 `@mfkit/plugin-api` and goes through the steward/breaking-change protocol.
 
-### O1. Typed-but-unwired contract surface — **high**
+### O1. Typed-but-unwired contract surface — **high** · *alpha.2: documented*
+
+> alpha.2: every unwired field now carries `@experimental` JSDoc saying it is
+> not consumed (including `budgetBytes`/`budgets`, whose JSDoc claimed "Enforced
+> in CI"), and the README matrix lists them. Wiring them is still open (A1).
 
 | Surface | Status |
 |---|---|
@@ -75,7 +91,13 @@ README. Then wire them in this order: `healing` (cheap; provider reads
 an injected hook, the same pattern as `loadRemote`), then `discovery`/`setup`
 (need a resolved-config pipeline that doesn't exist yet; see A1).
 
-### O2. Hardcoded, stale `requiredVersion` in built-in adapters — **high**
+### O2. Hardcoded, stale `requiredVersion` in built-in adapters — **resolved in alpha.2**
+
+> Worse than described below: `@module-federation/vite` also derives the
+> *provided* version from `requiredVersion`, so a React 19 app advertised
+> `react@18.0.0` to the share scope. Adapters now declare `singleton` only; the
+> plugin fills `^<installed>`. Verified: the React 19 example's share map
+> advertises `19.3.0`.
 
 `react` adapter ships `requiredVersion: "^18.0.0"`, `angular` ships
 `"^17.0.0"`. React 19 and Angular 18+ consumers get skew warnings or, with
@@ -129,7 +151,11 @@ mounts don't receive styles, and styles persist after unmount.
 or `__webpack_nonce__`-style global), document the CSP requirement in the
 integration guide, and track scoped/shadow injection as a v0.2 item.
 
-### O7. Async unmount can race a fast remount — **low, plausible**
+### O7. Async unmount can race a fast remount — **resolved in alpha.2**
+
+> Confirmed with a deferred-`unmount` test (fails without the fix). Mounts now
+> await a per-container pending-teardown promise, shared across controller
+> instances because React's effect re-run creates a new controller.
 
 `controller.start()` fires `void tearDownMounted()` and immediately begins the
 next cycle into the *same* container. With a sync `unmount` (React, Svelte),
@@ -147,6 +173,9 @@ Node 20 left maintenance in April 2026. Decision (2026-10-07): the floor is now
 and CI tests the two maintained LTS lines, 22 and 24.
 
 ### O9. Small sharp edges
+
+> alpha.2: `MFEQuarantinedError.reason` landed. The regex it replaced also
+> truncated multi-line reasons (`.` stops at a newline).
 
 - `MFEQuarantinedError` carries its reason only inside `message`; the
   controller regex-parses it back out. Add a `reason` field.
@@ -258,7 +287,7 @@ optional `integrity` field per MFE (build emits hashes; shell verifies before
 | Milestone | Contents | Why this order |
 |---|---|---|
 | **v0.1.0-alpha.1** (now) | This review's fixes + OSS scaffolding | Already done; ship it. |
-| **v0.1.0-alpha.2** | O1 JSDoc `@experimental` + README "what works" matrix, O2 adapter versions, O7 race, O9 `reason` field, coverage gate | All small. Removes every "the docs lied to me" moment. |
+| **v0.1.0-alpha.2** ✅ | O1 JSDoc `@experimental`, O2 adapter versions, O7 race, O9 `reason` field, coverage reporting, test layers L3/L4/L6 + React 19 — which surfaced and fixed R7–R9 | Done. The fault-injection layer paid for itself on its first run. |
 | **v0.1.0-beta** | A1 resolved-config pipeline, `healing` wired, O5 cooldown, O6 CSP nonce, React 19 + Vue example variants | Makes the plugin system real, broadens the tested matrix. |
 | **v0.2** | A4 outlet core + Vue shell, A5 `mfkit sync/doctor`, O3/O4 (additive contract fields) | Contract additions batched into one plugin-api minor. |
 | **v0.3+** | A2 version-skew loop, A3 runtime graph, A6 integrity | Builds on A1/A4. |

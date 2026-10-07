@@ -20,16 +20,18 @@ export interface MFKitPlugin {
   readonly version?: string;
   /** Framework adapters this plugin contributes. */
   readonly frameworkAdapters?: readonly FrameworkAdapter[];
-  /** Discovery strategy this plugin contributes. */
+  /** Discovery strategy this plugin contributes. @experimental Not yet consumed by `@mfkit/kit`. */
   readonly discovery?: DiscoveryStrategy;
-  /** Healing strategy override supplied by this plugin. */
+  /** Healing strategy override supplied by this plugin. @experimental Not yet consumed by `@mfkit/kit`. */
   readonly healing?: HealingStrategy;
-  /** Template resolvers this plugin registers with the CLI. */
+  /** Template resolvers this plugin registers with the CLI. @experimental The CLI ships in Phase 2. */
   readonly templateResolvers?: readonly TemplateResolver[];
   /**
    * One-shot setup hook. Runs once after the resolved config is finalized
    * but before MFKit starts using it. Useful for side-effecting registration
    * (e.g. injecting OpenTelemetry hooks).
+   *
+   * @experimental Not yet consumed by `@mfkit/kit` — there is no resolved-config pipeline to run it from yet.
    */
   readonly setup?: (config: MFKitConfig) => void | Promise<void>;
 }

@@ -35,13 +35,17 @@ examples/minimal/                 React shell + React MFE + Svelte MFE; CI runs 
 
 - **Ports have exactly one resolver**, used by both the MFE side and the shell side: `entry.port ?? autoAssignPorts(config)` (hash into 5173–5273, skipping explicit ports and the shell's effective port). `FrameworkAdapter.defaultPort` is deprecated and ignored. The shell never loads MFE adapters, so anything adapter-derived can't reach the remote URL. `defineConfig` rejects MFE↔shell port clashes (shell default `DEFAULT_SHELL_PORT = 3000`).
 - **Adapter precedence:** `opts.adapters` > `config.plugins[].frameworkAdapters` (later plugin wins) > built-ins (`vite/adapter-resolve.ts`, lazy-imported).
+- **Shells load remotes through the MF runtime, never `import("mfe_x/…")`.** `@module-federation/vite` preloads every specifier-imported remote with `Promise.all` before the app starts: one remote down → blank shell (review R7). Use `createFederationLoader(await import("@module-federation/runtime"))` from `/healing` as the provider's `loadRemote`.
+- **The MF runtime caches failed remote loads** (rejections included, per name+URL), as does the browser module map. `createFederationLoader` re-registers a failed remote under `?mfkit-retry=N` so retries really refetch (review R8). Any new loader path must preserve this; `faults.mjs` asserts exactly `maxAttempts` fetches.
+- **Built-in adapters never pin `requiredVersion`.** The MF plugin derives the *advertised* version from it; let it read the installed package (review O2).
+- **Mounts wait for the container's pending unmount** (`pendingTeardowns` in `react/controller.ts`), across controller instances (review O7).
 - **Shell remotes are object-form with `type: "module"`.** String remotes fall back to script injection and break (RUNTIME-001).
 - **MFE builds inline CSS into entry chunks** (`vite/css-inject.ts`, on by default, `injectCss: false` opts out). The snippet is *appended* so sourcemaps stay aligned.
 - **Generated federation configs pass `dts: false`.** Kit owns remote types via `/types`.
 - **`exposes` is probed**: `./src/lifecycle.{ts,tsx,mts,js,jsx,mjs}` under both `cwd` and `cwd + entry.path`. User `exposes` is never probed. The example relies on this (no explicit `exposes`).
 - **React outlet stability:** `entries` (provider) is keyed by content (`entries-cache.ts`); `props` (outlet) by shallow equality (`stable-props.ts`). Inline literals must never remount an MFE.
 - **The outlet's error boundary can't see errors inside a mounted MFE** (separate roots). Post-mount errors are currently unobserved (review O3).
-- **Typed but not wired:** `MFKitPlugin.healing/setup/discovery/templateResolvers`, `config.discovery`, automatic `onVersionMismatch`. Don't document them as working (review O1).
+- **Typed but not wired** (JSDoc `@experimental`): `MFKitPlugin.healing/setup/discovery/templateResolvers`, `config.discovery`, `budgets`/`budgetBytes`, automatic `onVersionMismatch`. Don't document them as working (review O1).
 - Angular uses `@analogjs/vite-plugin-angular` (not native-federation). Expose key is plain `"./lifecycle"` (the `"././"` workaround is obsolete).
 - `mfkit-migrate` detects "run as binary" by comparing **real paths** (`isEntrypoint`); bins are symlinks/shims.
 
@@ -64,9 +68,12 @@ pnpm --filter @mfkit/kit test                               # one package
 pnpm --filter mfkit-example-minimal gen                     # regenerate example artifacts
 pnpm --filter mfkit-example-minimal smoke                   # build + vite preview + HTTP checks
 pnpm --filter mfkit-example-minimal e2e                     # headless system Chrome (playwright-core)
+pnpm --filter mfkit-example-minimal faults                  # L6: remote outages → quarantine, retry, recovery
+pnpm test:coverage                                          # unit + DOM tests with v8 coverage
+pnpm pack-check                                             # L4: install tarballs into a fresh Svelte-only app (network)
 ```
 
-Run smoke + e2e for anything touching `/vite`, `/react`, CSS injection, or the example. Unit tests can't see bundler/runtime behavior. CI also runs publint + are-the-types-wrong on every package.
+Run smoke + e2e + faults for anything touching `/vite`, `/react`, `/healing`, CSS injection, or the example. React glue changes need `tests/react/outlet.dom.test.tsx` (happy-dom) coverage, not just controller tests. The example runs React 19; kit's DOM tests run React 18 (the peer floor). Unit tests can't see bundler/runtime behavior. CI also runs publint + are-the-types-wrong on every package.
 
 ## Agents
 

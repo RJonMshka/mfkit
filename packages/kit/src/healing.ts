@@ -11,11 +11,17 @@
 //   - runWithHealing                       orchestrator used by the outlet
 //   - checkSingletonVersion                version-skew gate
 //   - createManifestCache                  last-known-good fallback
+//   - createFederationLoader               MF-runtime loadRemote whose retries refetch
 
 import type { HealingStrategy, MFKitConfig } from "@mfkit/plugin-api";
 
 import { forgivingStrategy } from "./healing/strategies.js";
 
+export {
+  createFederationLoader,
+  type FederationRemoteLike,
+  type FederationRuntimeLike,
+} from "./healing/federation-loader.js";
 export {
   createManifestCache,
   type ManifestCache,

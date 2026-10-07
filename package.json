@@ -12,7 +12,9 @@
   "scripts": {
     "build": "turbo run build",
     "lint": "biome check .",
+    "pack-check": "node scripts/pack-check.mjs",
     "test": "turbo run test",
+    "test:coverage": "turbo run test:coverage",
     "typecheck": "turbo run typecheck",
     "clean": "turbo run clean && rm -rf node_modules",
     "changeset": "changeset",
@@ -22,6 +24,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.5.1",
     "@changesets/cli": "^2.27.10",
+    "@vitest/coverage-v8": "^3.2.7",
     "tsup": "^8.4.0",
     "turbo": "^2.5.3",
     "typescript": "^5.8.3",
