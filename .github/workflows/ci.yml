@@ -56,8 +56,8 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Test
-        run: pnpm test
+      - name: Test (with coverage report)
+        run: pnpm test:coverage
 
   example:
     name: example (smoke + e2e)
@@ -95,6 +95,11 @@ jobs:
       - name: Example e2e (headless Chrome)
         run: pnpm --filter mfkit-example-minimal e2e
 
+      # L6: break a remote at the network layer and assert the shell keeps
+      # running, retries really refetch, and quarantine/recovery work.
+      - name: Example fault injection (headless Chrome)
+        run: pnpm --filter mfkit-example-minimal faults
+
   package:
     name: package correctness
     needs: verify
@@ -126,3 +131,8 @@ jobs:
             (cd packages/$pkg && npx --yes publint@0.3 --strict && npx --yes @arethetypeswrong/cli@0.18 --pack --profile esm-only)
             echo "::endgroup::"
           done
+
+      # L4: install the tarballs into a fresh Svelte-only project and use them —
+      # proves optional peers stay optional and the mfkit-migrate bin runs.
+      - name: Pack, install, and use
+        run: pnpm pack-check
