@@ -48,10 +48,18 @@ try {
   process.exit(0);
 }
 
-const servers = startPreviewServers();
+// `--dev` runs the same assertions against Vite dev servers instead of
+// production builds (testing plan L5). Build-only checks are skipped there.
+const devMode = process.argv.includes("--dev");
+const servers = startPreviewServers({ mode: devMode ? "dev" : "preview" });
 let failed = false;
 try {
   await waitFor("http://localhost:3000/");
+  if (devMode) {
+    // MFE dev servers must be up before the shell asks for their entries.
+    await waitFor("http://localhost:5175/remoteEntry.js", 60_000);
+    await waitFor("http://localhost:5176/remoteEntry.js", 60_000);
+  }
 
   const page = await browser.newPage();
   const pageErrors = [];
@@ -115,6 +123,21 @@ try {
     throw new Error(`page errors:\n  ${pageErrors.join("\n  ")}`);
   }
 
+  // The CSP check exercises kit's build-time CSS injection; in dev, styles
+  // come through Vite's own client instead.
+  if (!devMode) await checkStrictCsp(browser);
+
+  console.log(devMode ? "e2e (dev) passed" : "e2e passed");
+} catch (err) {
+  console.error(`e2e failed: ${err instanceof Error ? err.message : String(err)}`);
+  failed = true;
+} finally {
+  await servers.stop();
+  await browser.close();
+}
+process.exit(failed ? 1 : 0);
+
+async function checkStrictCsp(browser) {
   // Strict CSP (review O6): styles only with a matching nonce. The host
   // advertises it via <meta property="csp-nonce">, Vite's convention; kit's
   // injected <style> must pick it up or the remote renders unstyled again.
@@ -146,13 +169,4 @@ try {
   console.log(`ok  mfe_clock styled under strict CSP via nonce (padding ${cspPadding})`);
   await cspPage.close();
   await cspProxy.close();
-
-  console.log("e2e passed");
-} catch (err) {
-  console.error(`e2e failed: ${err instanceof Error ? err.message : String(err)}`);
-  failed = true;
-} finally {
-  await servers.stop();
-  await browser.close();
 }
-process.exit(failed ? 1 : 0);

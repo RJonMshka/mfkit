@@ -95,6 +95,11 @@ jobs:
       - name: Example e2e (headless Chrome)
         run: pnpm --filter mfkit-example-minimal e2e
 
+      # L5: dev and build take different paths (dev remotes, Vite's CSS
+      # handling, the MF dev runtime) — run the same assertions against both.
+      - name: Example e2e against dev servers
+        run: pnpm --filter mfkit-example-minimal e2e:dev
+
       # L6: break a remote at the network layer and assert the shell keeps
       # running, retries really refetch, and quarantine/recovery work.
       - name: Example fault injection (headless Chrome)
