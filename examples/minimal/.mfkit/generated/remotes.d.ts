@@ -12,3 +12,15 @@ declare module "mfe_clock/lifecycle" {
   const lifecycle: MFEDefinition;
   export default lifecycle;
 }
+
+declare module "mfe_vue/lifecycle" {
+  import type { MFEDefinition } from "@mfkit/plugin-api";
+  const lifecycle: MFEDefinition;
+  export default lifecycle;
+}
+
+declare module "mfe_lit/lifecycle" {
+  import type { MFEDefinition } from "@mfkit/plugin-api";
+  const lifecycle: MFEDefinition;
+  export default lifecycle;
+}

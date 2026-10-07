@@ -128,18 +128,19 @@ export interface MFKitConfig {
   readonly budgets?: Readonly<Record<string, number>>;
   /**
    * Healing strategy override. Defaults to MFKit's forgiving strategy.
-   * Not read automatically: pass `resolveHealingStrategy(config)` (from
-   * `@mfkit/kit/healing`) to `<MFKitProvider strategy={…}>`.
+   * Read by `<MFKitProvider config={…}>`, `resolveConfig`, and
+   * `resolveHealingStrategy`; wins over any plugin-supplied strategy.
    */
   readonly healing?: HealingStrategy;
   /**
-   * Discovery strategy override. Defaults to the manifest-driven strategy.
-   * @experimental Not yet consumed by `@mfkit/kit`.
+   * Extra discovery strategy, run before plugin strategies. Discovered
+   * entries are added to `mfes`; declared entries are never replaced.
    */
   readonly discovery?: DiscoveryStrategy;
   /**
-   * Plugins extend any of the pluggable surfaces. Applied in order. Today only
-   * `frameworkAdapters` is consumed; see `MFKitPlugin` for the rest.
+   * Plugins extend any of the pluggable surfaces. Applied in order; for
+   * single-value surfaces (healing) later plugins win, and the config's own
+   * value wins over every plugin.
    */
   readonly plugins?: readonly MFKitPlugin[];
 }

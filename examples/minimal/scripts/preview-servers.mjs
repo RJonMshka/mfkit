@@ -11,18 +11,25 @@ export const apps = [
   { dir: "shell", port: 3000, path: "/", expect: '<div id="root">' },
   { dir: "mfe-hello", port: 5175, path: "/remoteEntry.js", expect: "lifecycle" },
   { dir: "mfe-clock", port: 5176, path: "/remoteEntry.js", expect: "lifecycle" },
+  { dir: "mfe-vue", port: 5177, path: "/remoteEntry.js", expect: "lifecycle" },
+  { dir: "mfe-lit", port: 5178, path: "/remoteEntry.js", expect: "lifecycle" },
 ];
 
-/** Spawn all preview servers. Returns a stop() that terminates them. */
-export function startPreviewServers() {
+/**
+ * Spawn a server per app. `mode: "preview"` (default) serves the production
+ * builds; `mode: "dev"` runs Vite dev servers — a different code path (dev
+ * remotes, Vite's own CSS handling, the MF dev runtime). Returns stop().
+ */
+export function startPreviewServers({ mode = "preview" } = {}) {
   const children = [];
   for (const app of apps) {
     const appDir = join(exampleRoot, app.dir);
-    if (!existsSync(join(appDir, "dist"))) {
+    if (mode === "preview" && !existsSync(join(appDir, "dist"))) {
       throw new Error(`${app.dir}/dist missing — run \`pnpm build\` at the repo root first.`);
     }
     const bin = join(appDir, "node_modules", ".bin", "vite");
-    children.push(spawn(bin, ["preview"], { cwd: appDir, stdio: "inherit" }));
+    const args = mode === "dev" ? [] : ["preview"];
+    children.push(spawn(bin, args, { cwd: appDir, stdio: "inherit" }));
   }
   return {
     /** Terminate all servers and resolve once every process has exited. */

@@ -123,3 +123,17 @@ describe("withRetryParam", () => {
     );
   });
 });
+
+describe("createFederationLoader — edge cases", () => {
+  it("skips the cache-bust when the runtime has no entry URL for the remote", async () => {
+    const runtime: FederationRuntimeLike = {
+      loadRemote: vi.fn().mockRejectedValueOnce(new Error("x")).mockResolvedValueOnce({}),
+      registerRemotes: vi.fn(),
+      getInstance: () => null,
+    };
+    const load = createFederationLoader(runtime);
+    await expect(load("mfe_a/lifecycle")).rejects.toThrow();
+    await expect(load("mfe_a/lifecycle")).resolves.toEqual({});
+    expect(runtime.registerRemotes).not.toHaveBeenCalled();
+  });
+});

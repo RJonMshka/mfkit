@@ -95,6 +95,11 @@ jobs:
       - name: Example e2e (headless Chrome)
         run: pnpm --filter mfkit-example-minimal e2e
 
+      # L5: dev and build take different paths (dev remotes, Vite's CSS
+      # handling, the MF dev runtime) — run the same assertions against both.
+      - name: Example e2e against dev servers
+        run: pnpm --filter mfkit-example-minimal e2e:dev
+
       # L6: break a remote at the network layer and assert the shell keeps
       # running, retries really refetch, and quarantine/recovery work.
       - name: Example fault injection (headless Chrome)
@@ -131,6 +136,10 @@ jobs:
             (cd packages/$pkg && npx --yes publint@0.3 --strict && npx --yes @arethetypeswrong/cli@0.18 --pack --profile esm-only)
             echo "::endgroup::"
           done
+
+      # L2: the committed API reports must match the built .d.ts surface.
+      - name: API report is up to date
+        run: pnpm api:check
 
       # L4: install the tarballs into a fresh Svelte-only project and use them —
       # proves optional peers stay optional and the mfkit-migrate bin runs.

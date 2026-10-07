@@ -1,7 +1,7 @@
 {
   "name": "@mfkit/plugin-api",
   "version": "0.1.0-alpha.0",
-  "description": "Stable TypeScript contract surface for MFKit. Types only \u2014 zero runtime.",
+  "description": "Stable TypeScript contract surface for MFKit. Types only — zero runtime.",
   "keywords": [
     "mfkit",
     "module-federation",
@@ -49,7 +49,7 @@
   "devDependencies": {
     "tsup": "^8.4.0",
     "typescript": "^5.8.3",
-    "vitest": "^3.2.0"
+    "vitest": "^3.2.7"
   },
   "publishConfig": {
     "access": "public"

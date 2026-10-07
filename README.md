@@ -13,8 +13,8 @@ remote map, typed federated imports, and the Turbo dev pipeline. At runtime it
 mounts each MFE behind a healing outlet: retry with backoff, then quarantine,
 so one broken remote never takes the shell down.
 
-> **Status: alpha.** Phase 1 is complete and runs in CI against a real
-> React + Svelte example. The API may change before v0.1. See
+> **Status: alpha → beta.** Runs in CI against a real React + Svelte + Vue +
+> Lit example, in production and dev mode, with remotes broken on purpose. The API may change before v0.1. See
 > [what works today](#what-works-today).
 
 ## 60-second tour
@@ -73,7 +73,7 @@ import * as federationRuntime from "@module-federation/runtime";
 
 const loadRemote = createFederationLoader(federationRuntime);
 
-<MFKitProvider loadRemote={loadRemote} entries={config.mfes}>
+<MFKitProvider loadRemote={loadRemote} config={config}>
   <MFKitOutlet remote="mfe_clock" />
 </MFKitProvider>
 ```
@@ -102,16 +102,17 @@ never installs React.
 | Capability | Status |
 |---|---|
 | Manifest validation with aggregated, path-addressed errors | ✅ |
-| Vite + MF config generation for MFEs and shell | ✅ React, Svelte (CI-tested) · Vue, Lit, Angular (adapters exist, not yet CI-tested) |
+| Vite + MF config generation for MFEs and shell | ✅ React, Svelte, Vue, Lit (CI-tested in build + dev) · Angular (adapter exists, not yet CI-tested) |
 | Inferred ports / exposes / remote URLs, logged in dev | ✅ |
 | Remote CSS travels with the remote entry | ✅ |
-| `<MFKitOutlet>`: retry → quarantine, custom slots | ✅ React 18 + 19 shells; proven by fault-injection e2e |
+| `<MFKitOutlet>`: retry → quarantine → optional cooldown recovery, custom slots | ✅ React 18 + 19 shells; six fault-injection scenarios in CI |
+| Strict CSP (`style-src 'nonce-…'`) | ✅ via `<meta property="csp-nonce">` |
 | Typed federated imports (`.d.ts` generation + watcher) | ✅ |
 | Turbo pipeline generation (`turbo dev` starts all remotes) | ✅ |
-| Custom framework adapters via `config.plugins` or `adapters` option | ✅ |
+| Plugins: framework adapters, healing, discovery, `setup` (`resolveConfig`) | ✅ |
 | `mfkit-migrate` CLI | ✅ infrastructure; first codemods land v0.3 |
 | Vue / Svelte **shell** outlets | 🔜 v0.2 |
-| Plugin `healing`/`discovery`/`setup` hooks, budgets, automatic singleton-skew detection | 🧪 typed and marked `@experimental`, not yet wired. See [review O1](docs/project-review-2026-10.md#o1-typed-but-unwired-contract-surface--high) |
+| Bundle budgets, automatic singleton-skew detection | 🧪 typed and marked `@experimental`, not yet wired |
 | `create-mfkit` scaffolder | 🔜 Phase 2 |
 
 ## Packages

@@ -71,6 +71,13 @@ export function cssInjectedByJs(opts: CssInjectOptions): Plugin {
 // Self-executing, idempotent, and non-throwing: an MFE whose styles fail to
 // attach should still mount (invariant 5 — forgiving by default). Guarded on
 // `document` so SSR/node consumers importing the chunk don't explode.
+//
+// CSP (review O6): under `style-src 'nonce-…'` an un-nonced <style> is
+// blocked and the MFE renders unstyled. Nonces are per-response, so they can't
+// be baked in at build time; the snippet reads the host page's nonce the same
+// way Vite's own client does — `<meta property="csp-nonce" nonce="…">`, which
+// Vite's `html.cspNonce` option emits. `.nonce` (not getAttribute) because
+// browsers hide nonce attribute values from the DOM.
 function injectionSnippet(remoteName: string, css: string): string {
   const id = `mfkit-css-${remoteName}`;
   return [
@@ -80,6 +87,9 @@ function injectionSnippet(remoteName: string, css: string): string {
     "if(document.getElementById(id))return;",
     'var el=document.createElement("style");',
     "el.id=id;",
+    'var m=document.querySelector("meta[property=csp-nonce]");',
+    'var n=m&&(m.nonce||m.getAttribute("nonce"));',
+    "if(n)el.nonce=n;",
     `el.textContent=${JSON.stringify(css)};`,
     "document.head.appendChild(el);",
     // JSON.stringify, not interpolation: the remote name lands inside generated

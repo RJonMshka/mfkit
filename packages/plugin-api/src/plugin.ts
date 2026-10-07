@@ -20,9 +20,9 @@ export interface MFKitPlugin {
   readonly version?: string;
   /** Framework adapters this plugin contributes. */
   readonly frameworkAdapters?: readonly FrameworkAdapter[];
-  /** Discovery strategy this plugin contributes. @experimental Not yet consumed by `@mfkit/kit`. */
+  /** Discovery strategy this plugin contributes. See `DiscoveryStrategy` for merge rules. */
   readonly discovery?: DiscoveryStrategy;
-  /** Healing strategy override supplied by this plugin. @experimental Not yet consumed by `@mfkit/kit`. */
+  /** Healing strategy supplied by this plugin. Later plugins win; `config.healing` wins over all. */
   readonly healing?: HealingStrategy;
   /** Template resolvers this plugin registers with the CLI. @experimental The CLI ships in Phase 2. */
   readonly templateResolvers?: readonly TemplateResolver[];
@@ -31,7 +31,8 @@ export interface MFKitPlugin {
    * but before MFKit starts using it. Useful for side-effecting registration
    * (e.g. injecting OpenTelemetry hooks).
    *
-   * @experimental Not yet consumed by `@mfkit/kit` — there is no resolved-config pipeline to run it from yet.
+   * Receives the resolved config (discovered entries included). Run by
+   * `resolveConfig`, once per config object per process.
    */
   readonly setup?: (config: MFKitConfig) => void | Promise<void>;
 }

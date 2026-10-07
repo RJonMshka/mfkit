@@ -147,11 +147,7 @@ export function buildRemotesMap(
   const out: Record<string, string> = {};
   for (const entry of config.mfes) {
     const port = entry.port ?? ports.get(entry.name);
-    if (port === undefined) {
-      throw new MFKitConfigError(`Internal: failed to resolve port for MFE "${entry.name}"`, [
-        { path: `mfes[${entry.name}].port`, message: "no port resolved" },
-      ]);
-    }
+    if (port === undefined) throw portsExhausted(entry.name);
     const file = entry.remoteEntry ?? DEFAULT_REMOTE_ENTRY;
     const origin = mode === "build" && entry.origin ? entry.origin : `http://localhost:${port}`;
     if (mode === "build" && !entry.origin && inferred) {
@@ -236,12 +232,7 @@ function resolveMFEPort(
 
   const ports = autoAssignPorts(config);
   const p = ports.get(entry.name);
-  if (p === undefined) {
-    throw new MFKitConfigError(
-      `Could not auto-assign port for MFE "${entry.name}" (range ${AUTO_PORT_MIN}..${AUTO_PORT_MAX} exhausted)`,
-      [{ path: `mfes[${entry.name}].port`, message: "auto-port exhausted" }],
-    );
-  }
+  if (p === undefined) throw portsExhausted(entry.name);
   inferred.push({
     scope: entry.name,
     field: "port",
@@ -249,6 +240,16 @@ function resolveMFEPort(
     source: "auto-assigned",
   });
   return p;
+}
+
+// One error for both sides: the shell used to say "Internal: failed to resolve
+// port" for the same condition the MFE side explained properly.
+function portsExhausted(name: string): MFKitConfigError {
+  return new MFKitConfigError(
+    `Could not auto-assign a port for MFE "${name}": all ${AUTO_PORT_COUNT} ports in ` +
+      `${AUTO_PORT_MIN}..${AUTO_PORT_MAX} are taken. Set \`port\` explicitly on some MFEs.`,
+    [{ path: `mfes[${name}].port`, message: "auto-port range exhausted" }],
+  );
 }
 
 function collectExplicitPorts(config: MFKitConfig): Set<number> {
@@ -263,9 +264,15 @@ function collectExplicitPorts(config: MFKitConfig): Set<number> {
 function autoAssignPorts(config: MFKitConfig): ReadonlyMap<string, number> {
   const taken = collectExplicitPorts(config);
   const assigned = new Map<string, number>();
-  for (const m of config.mfes) {
-    if (m.port !== undefined) continue;
-    let p = AUTO_PORT_MIN + (hashName(m.name) % AUTO_PORT_COUNT);
+  // Name order, not manifest order: hash collisions are resolved by linear
+  // probing, so iterating in manifest order meant reordering entries could
+  // swap two MFEs' ports. Sorted, the assignment depends only on the set.
+  const auto = config.mfes
+    .filter((m) => m.port === undefined)
+    .map((m) => m.name)
+    .sort();
+  for (const name of auto) {
+    let p = AUTO_PORT_MIN + (hashName(name) % AUTO_PORT_COUNT);
     let probes = 0;
     while (taken.has(p) && probes < AUTO_PORT_COUNT) {
       p = AUTO_PORT_MIN + ((p - AUTO_PORT_MIN + 1) % AUTO_PORT_COUNT);
@@ -273,7 +280,7 @@ function autoAssignPorts(config: MFKitConfig): ReadonlyMap<string, number> {
     }
     if (probes >= AUTO_PORT_COUNT) continue;
     taken.add(p);
-    assigned.set(m.name, p);
+    assigned.set(name, p);
   }
   return assigned;
 }

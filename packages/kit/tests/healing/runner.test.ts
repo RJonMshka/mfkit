@@ -230,3 +230,135 @@ describe("runWithHealing — error wrapping", () => {
     expect((seen[0] as Error).message).toBe("plain string");
   });
 });
+
+describe("runWithHealing — half-open probe (review O5)", () => {
+  function halfOpenRegistry() {
+    let t = 0;
+    const registry = createQuarantineRegistry({ cooldownMs: 100, now: () => t });
+    registry.quarantine(entry.name, "down");
+    t = 100;
+    return registry;
+  }
+
+  it("makes exactly one attempt and re-quarantines on failure, skipping the strategy", async () => {
+    const registry = halfOpenRegistry();
+    const strategy = forgivingStrategy({ maxAttempts: 5, initialDelayMs: 1 });
+    const onLoadError = vi.spyOn(strategy, "onLoadError");
+    const op = vi.fn().mockRejectedValue(new Error("still down"));
+    await expect(
+      runWithHealing({ op, entry, kind: "load", strategy, registry }),
+    ).rejects.toBeInstanceOf(MFEQuarantinedError);
+    expect(op).toHaveBeenCalledTimes(1);
+    expect(onLoadError).not.toHaveBeenCalled();
+    expect(registry.isQuarantined(entry.name)).toBe(true);
+    expect(registry.snapshot().get(entry.name)?.reason).toBe("still down");
+  });
+
+  it("closes the breaker when the probe succeeds", async () => {
+    const registry = halfOpenRegistry();
+    await expect(
+      runWithHealing({
+        op: async () => "ok",
+        entry,
+        kind: "load",
+        strategy: forgivingStrategy(),
+        registry,
+      }),
+    ).resolves.toBe("ok");
+    expect(registry.snapshot().has(entry.name)).toBe(false);
+  });
+});
+
+describe("runWithHealing — paths the first suite never reached", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // The existing "mid-wait" test aborts before the wait starts; this aborts
+  // while the backoff timer is pending.
+  it("aborting during a pending backoff rejects promptly and cancels the retry", async () => {
+    const controller = new AbortController();
+    const op = vi.fn().mockRejectedValue(new Error("net"));
+    const promise = runWithHealing({
+      op,
+      entry,
+      kind: "load",
+      strategy: forgivingStrategy({ initialDelayMs: 10_000, maxAttempts: 5 }),
+      signal: controller.signal,
+    });
+    const settled = promise.catch((e: unknown) => e);
+    await vi.advanceTimersByTimeAsync(100); // first attempt failed; now waiting 10s
+    expect(op).toHaveBeenCalledTimes(1);
+    controller.abort();
+    expect(await settled).toMatchObject({ name: "AbortError" });
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(op).toHaveBeenCalledTimes(1);
+  });
+
+  it("propagates an Error abort reason as-is", async () => {
+    const controller = new AbortController();
+    const reason = new Error("route changed");
+    controller.abort(reason);
+    await expect(
+      runWithHealing({
+        op: vi.fn(),
+        entry,
+        kind: "load",
+        strategy: forgivingStrategy(),
+        signal: controller.signal,
+      }),
+    ).rejects.toBe(reason);
+  });
+
+  it("wraps a non-Error abort reason in an AbortError", async () => {
+    const controller = new AbortController();
+    controller.abort("navigated away");
+    await expect(
+      runWithHealing({
+        op: vi.fn(),
+        entry,
+        kind: "load",
+        strategy: forgivingStrategy(),
+        signal: controller.signal,
+      }),
+    ).rejects.toMatchObject({ name: "AbortError", message: "aborted" });
+  });
+
+  it("forces quarantine at maxAttempts even if the strategy keeps saying retry", async () => {
+    const registry = createQuarantineRegistry();
+    const stubborn: HealingStrategy = {
+      id: "stubborn",
+      maxAttempts: 2,
+      onLoadError: () => ({ action: "retry", afterMs: 1 }),
+      onMountError: () => ({ action: "retry", afterMs: 1 }),
+      onVersionMismatch: () => "ignore",
+    };
+    const op = vi.fn().mockRejectedValue(new Error("down"));
+    const settled = runWithHealing({
+      op,
+      entry,
+      kind: "mount",
+      strategy: stubborn,
+      registry,
+    }).catch((e: unknown) => e);
+    await vi.runAllTimersAsync();
+    expect(await settled).toBeInstanceOf(MFEQuarantinedError);
+    expect(op).toHaveBeenCalledTimes(2);
+    expect(registry.isQuarantined(entry.name)).toBe(true);
+  });
+
+  it("falls back to a generic reason when a custom registry has no record detail", async () => {
+    const registry = {
+      isQuarantined: () => true,
+      quarantine: () => {},
+      clear: () => {},
+      snapshot: () => new Map(),
+    };
+    await expect(
+      runWithHealing({ op: vi.fn(), entry, kind: "load", strategy: forgivingStrategy(), registry }),
+    ).rejects.toMatchObject({ reason: "already quarantined" });
+  });
+});

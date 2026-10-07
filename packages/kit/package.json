@@ -1,7 +1,7 @@
 {
   "name": "@mfkit/kit",
   "version": "0.1.0-alpha.0",
-  "description": "MFKit runtime \u2014 Vite config generation, lifecycle contract, self-healing primitives, <MFKitOutlet>.",
+  "description": "MFKit runtime — Vite config generation, lifecycle contract, self-healing primitives, <MFKitOutlet>.",
   "keywords": [
     "mfkit",
     "module-federation",
@@ -122,13 +122,14 @@
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.0",
     "@vitejs/plugin-vue": "^5.2.0",
+    "fast-check": "^4.10.2",
     "happy-dom": "^20.14.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tsup": "^8.4.0",
     "typescript": "^5.8.3",
     "vite": "^6.0.0",
-    "vitest": "^3.2.0"
+    "vitest": "^3.2.7"
   },
   "publishConfig": {
     "access": "public"

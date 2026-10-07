@@ -13,6 +13,8 @@
     "build": "turbo run build",
     "lint": "biome check .",
     "pack-check": "node scripts/pack-check.mjs",
+    "api:check": "node scripts/api-report.mjs --check",
+    "api:update": "node scripts/api-report.mjs",
     "test": "turbo run test",
     "test:coverage": "turbo run test:coverage",
     "typecheck": "turbo run typecheck",
@@ -28,7 +30,7 @@
     "tsup": "^8.4.0",
     "turbo": "^2.5.3",
     "typescript": "^5.8.3",
-    "vitest": "^3.2.0"
+    "vitest": "^3.2.7"
   },
   "packageManager": "pnpm@10.32.1",
   "engines": {

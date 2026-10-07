@@ -32,7 +32,9 @@
     "@mfkit-example/shell#dev": {
       "with": [
         "@mfkit-example/mfe-hello#dev",
-        "@mfkit-example/mfe-clock#dev"
+        "@mfkit-example/mfe-clock#dev",
+        "@mfkit-example/mfe-vue#dev",
+        "@mfkit-example/mfe-lit#dev"
       ],
       "cache": false,
       "persistent": true

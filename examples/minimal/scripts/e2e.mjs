@@ -4,9 +4,36 @@
 // Uses playwright-core with the system Chrome (channel: "chrome") — no
 // browser download. GitHub's ubuntu runners ship Chrome; locally the test
 // skips with a warning when Chrome is missing (fails instead when CI=true).
+
+import { createServer } from "node:http";
 import { chromium } from "playwright-core";
 
 import { startPreviewServers, waitFor } from "./preview-servers.mjs";
+
+/** Proxy the shell on :3100, adding a strict style CSP and the nonce meta tag. */
+function startCspProxy(nonce) {
+  const server = createServer(async (req, res) => {
+    const upstream = await fetch(`http://localhost:3000${req.url}`);
+    const headers = Object.fromEntries(upstream.headers);
+    delete headers["content-encoding"];
+    delete headers["content-length"];
+    let body = Buffer.from(await upstream.arrayBuffer());
+    if ((headers["content-type"] ?? "").includes("text/html")) {
+      headers["content-security-policy"] = `style-src 'nonce-${nonce}'`;
+      body = Buffer.from(
+        body
+          .toString("utf8")
+          .replace("<head>", `<head><meta property="csp-nonce" nonce="${nonce}">`),
+      );
+    }
+    res.writeHead(upstream.status, headers).end(body);
+  });
+  return new Promise((resolve) =>
+    server.listen(3100, () =>
+      resolve({ url: "http://localhost:3100/", close: () => new Promise((r) => server.close(r)) }),
+    ),
+  );
+}
 
 let browser;
 try {
@@ -21,10 +48,20 @@ try {
   process.exit(0);
 }
 
-const servers = startPreviewServers();
+// `--dev` runs the same assertions against Vite dev servers instead of
+// production builds (testing plan L5). Build-only checks are skipped there.
+const devMode = process.argv.includes("--dev");
+const servers = startPreviewServers({ mode: devMode ? "dev" : "preview" });
 let failed = false;
 try {
   await waitFor("http://localhost:3000/");
+  if (devMode) {
+    // MFE dev servers must be up before the shell asks for their entries.
+    await waitFor("http://localhost:5175/remoteEntry.js", 60_000);
+    await waitFor("http://localhost:5176/remoteEntry.js", 60_000);
+    await waitFor("http://localhost:5177/remoteEntry.js", 60_000);
+    await waitFor("http://localhost:5178/remoteEntry.js", 60_000);
+  }
 
   const page = await browser.newPage();
   const pageErrors = [];
@@ -33,7 +70,7 @@ try {
   await page.goto("http://localhost:3000/", { waitUntil: "domcontentloaded" });
 
   // Both outlets reach the "mounted" healing state.
-  for (const name of ["mfe_hello", "mfe_clock"]) {
+  for (const name of ["mfe_hello", "mfe_clock", "mfe_vue", "mfe_lit"]) {
     await page.waitForSelector(`[data-mfkit-outlet="${name}"][data-mfkit-state="mounted"]`, {
       timeout: 15_000,
     });
@@ -84,10 +121,40 @@ try {
   }
   console.log(`ok  mfe_clock styled in shell (padding ${clockStyles.padding})`);
 
+  // Vue (testing plan L7): scoped SFC styles reach the shell through kit's
+  // CSS injection, and the app is interactive.
+  const vue = await page.evaluate(() => {
+    const el = document.querySelector('[data-mfkit-mount="mfe_vue"] .vue-card');
+    return el ? { padding: getComputedStyle(el).paddingTop, text: el.textContent } : null;
+  });
+  if (!vue || vue.padding !== "12px" || !vue.text?.includes("/vue")) {
+    throw new Error(`mfe_vue mounted wrong or unstyled: ${JSON.stringify(vue)}`);
+  }
+  await page.click('[data-mfkit-mount="mfe_vue"] button');
+  const vueClicks = await page.textContent('[data-mfkit-mount="mfe_vue"] button');
+  if (!vueClicks?.includes("1")) throw new Error(`mfe_vue not interactive: ${vueClicks}`);
+  console.log("ok  mfe_vue styled (scoped SFC CSS) + interactive");
+
+  // Lit: shadow-DOM styles travel with the element; basePath reaches it.
+  const lit = await page.evaluate(() => {
+    const host = document.querySelector('[data-mfkit-mount="mfe_lit"] mfkit-lit-badge');
+    const card = host?.shadowRoot?.querySelector(".lit-card");
+    return card ? { padding: getComputedStyle(card).paddingTop, text: card.textContent } : null;
+  });
+  if (!lit || lit.padding !== "10px" || !lit.text?.includes("/lit")) {
+    throw new Error(`mfe_lit mounted wrong or unstyled: ${JSON.stringify(lit)}`);
+  }
+  console.log("ok  mfe_lit styled (shadow DOM) with basePath");
+
   if (pageErrors.length > 0) {
     throw new Error(`page errors:\n  ${pageErrors.join("\n  ")}`);
   }
-  console.log("e2e passed");
+
+  // The CSP check exercises kit's build-time CSS injection; in dev, styles
+  // come through Vite's own client instead.
+  if (!devMode) await checkStrictCsp(browser);
+
+  console.log(devMode ? "e2e (dev) passed" : "e2e passed");
 } catch (err) {
   console.error(`e2e failed: ${err instanceof Error ? err.message : String(err)}`);
   failed = true;
@@ -96,3 +163,37 @@ try {
   await browser.close();
 }
 process.exit(failed ? 1 : 0);
+
+async function checkStrictCsp(browser) {
+  // Strict CSP (review O6): styles only with a matching nonce. The host
+  // advertises it via <meta property="csp-nonce">, Vite's convention; kit's
+  // injected <style> must pick it up or the remote renders unstyled again.
+  const nonce = "mfkitE2eNonce";
+  // Served through a local proxy rather than Playwright's route.fulfill: a
+  // fulfilled document has no network address, so Chrome's Local Network
+  // Access check would block its requests to the localhost remotes.
+  const cspProxy = await startCspProxy(nonce);
+  const cspPage = await browser.newPage();
+  const cspViolations = [];
+  cspPage.on("console", (m) => {
+    if (m.type() === "error" && /Content Security Policy/i.test(m.text())) {
+      cspViolations.push(m.text());
+    }
+  });
+  await cspPage.goto(cspProxy.url, { waitUntil: "domcontentloaded" });
+  await cspPage.waitForSelector('[data-mfkit-outlet="mfe_clock"][data-mfkit-state="mounted"]', {
+    timeout: 15_000,
+  });
+  const cspPadding = await cspPage.evaluate(() => {
+    const el = document.querySelector('[data-mfkit-mount="mfe_clock"] .clock');
+    return el ? getComputedStyle(el).paddingTop : null;
+  });
+  if (!cspPadding || cspPadding === "0px") {
+    throw new Error(
+      `mfe_clock unstyled under strict CSP (padding ${cspPadding}); violations:\n  ${cspViolations.join("\n  ")}`,
+    );
+  }
+  console.log(`ok  mfe_clock styled under strict CSP via nonce (padding ${cspPadding})`);
+  await cspPage.close();
+  await cspProxy.close();
+}

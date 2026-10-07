@@ -35,6 +35,7 @@ export {
   createQuarantineRegistry,
   type QuarantineRecord,
   type QuarantineRegistry,
+  type QuarantineRegistryOptions,
 } from "./healing/quarantine.js";
 
 export {
@@ -55,7 +56,18 @@ export {
   SingletonVersionError,
 } from "./healing/version.js";
 
-/** Resolve the strategy a consumer's MFKitConfig declares, or the default. */
+/**
+ * The strategy a consumer's config declares: `config.healing`, else the last
+ * plugin that supplies one (later plugins win), else `forgivingStrategy()`.
+ * Same precedence as `resolveConfig`, but synchronous and dependency-free so
+ * a browser shell can call it on the manifest it imports.
+ */
 export function resolveHealingStrategy(config: MFKitConfig): HealingStrategy {
-  return config.healing ?? forgivingStrategy();
+  if (config.healing) return config.healing;
+  const plugins = config.plugins ?? [];
+  for (let i = plugins.length - 1; i >= 0; i--) {
+    const h = plugins[i]?.healing;
+    if (h) return h;
+  }
+  return forgivingStrategy();
 }

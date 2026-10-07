@@ -65,15 +65,26 @@ export async function runWithHealing<T>(opts: RunWithHealingOptions<T>): Promise
   }
 
   const handler = kind === "load" ? strategy.onLoadError : strategy.onMountError;
+  // Half-open (cooldown elapsed, review O5): exactly one probe. Success closes
+  // the breaker; failure re-opens it at once, without consulting the strategy
+  // — a remote that is still down shouldn't get a fresh round of retries.
+  const probing = registry?.isHalfOpen?.(entry.name) ?? false;
 
   for (let attempt = 1; ; attempt++) {
     if (signal?.aborted) throw abortError(signal);
 
     let lastError: Error;
     try {
-      return await op();
+      const result = await op();
+      if (probing) registry?.clear(entry.name);
+      return result;
     } catch (raw) {
       lastError = raw instanceof Error ? raw : new Error(String(raw));
+    }
+
+    if (probing) {
+      registry?.quarantine(entry.name, lastError.message);
+      throw new MFEQuarantinedError(entry.name, lastError.message, lastError);
     }
 
     const decision = handler({ entry, attempt, error: lastError });

@@ -165,6 +165,12 @@ export function defineMFE<Props = unknown>(def: MFEDefinition<Props>): MFEDefini
   return def;
 }
 
+export {
+  type ResolveConfigOptions,
+  type ResolvedMFKitConfig,
+  resolveConfig,
+} from "./resolve.js";
+
 // ─── Internals ───────────────────────────────────────────────────────────────
 
 function crossCheck(config: MFKitConfig): MFKitConfigIssue[] {

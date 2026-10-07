@@ -57,6 +57,13 @@ invisible to every test that only exercises the happy path.
 | R8 | `kit/healing` | **Retries never retried.** The MF runtime memoizes remote-entry loads per (name, URL) in `globalLoading`, rejections included, and the browser module map caches failed ESM imports. Every retry replayed the first failure with zero network requests. An MFE that blipped once stayed down until reload, and "retry with backoff" was a no-op. | L6: hard outage made 1 request across 3 attempts; transient outage never recovered. Runtime source: `getRemoteEntry` caches the promise before `.catch`. | `createFederationLoader(runtime)` in `@mfkit/kit/healing`: after a failure, re-registers the remote (`force: true`) under a `?mfkit-retry=N` entry URL, which is a fresh cache key for both caches. Fault e2e asserts exactly `maxAttempts` fetches. |
 | R9 | `kit/vite` adapter-resolve | **Missing-peer hint named the wrong package.** With `@analogjs/vite-plugin-angular` installed but *its* peer `@angular/compiler-cli` missing, kit said "needs @analogjs/vite-plugin-angular installed", because it only checked whether the peer's name appeared anywhere in the error (it did, in the import path). | Loading the Angular adapter in this repo. | Hint parses the package from `Cannot find package '…'` and says "X is not installed (required by Y)". |
 
+### Found while building the beta test layers
+
+| # | Area | Bug | How it was confirmed | Fix |
+|---|---|---|---|---|
+| R10 | `kit/vite` shell | **One slow remote delayed the whole shell's first render.** The MF plugin's default `shareStrategy: "version-first"` initializes *every* remote during the host's first `loadShare` to pick the highest shared version. Failures were caught, which is why the hard-outage scenario missed it, but latency wasn't. A hanging remote would block boot indefinitely. | New L6 slow-remote scenario: zero outlets rendered for the full 3s delay; runtime source (`initializeSharing` under `version-first`). | `mfkitShell` defaults to `"loaded-first"`, overridable with `shareStrategy`. |
+| R11 | `kit/vite` derive | **Reordering the manifest could swap two MFEs' auto-assigned ports.** Hash collisions were resolved by linear probing in manifest order. | fast-check counterexample with two names (`m13`, `_m__7`). | Auto-assignment iterates in name order; property test asserts order-independence. Also unified the port-exhaustion error (the shell side said "Internal: failed to resolve port"). |
+
 Small fixes alongside: the inverted `logInferred` JSDoc, a false claim in
 `error-boundary.tsx` (see O3), a stale comment in `examples/minimal` (the
 example now dogfoods `.tsx` lifecycle inference instead of hardcoding
@@ -70,7 +77,12 @@ example now dogfoods `.tsx` lifecycle inference instead of hardcoding
 Ordered by adoption impact. "Contract" means the fix touches
 `@mfkit/plugin-api` and goes through the steward/breaking-change protocol.
 
-### O1. Typed-but-unwired contract surface — **high** · *alpha.2: documented*
+### O1. Typed-but-unwired contract surface — **mostly resolved in beta**
+
+> beta: `resolveConfig` (A1) runs plugin `healing`, `discovery`, `setup`, and
+> adapters; `<MFKitProvider config>` reads healing at runtime. Still
+> `@experimental` and unconsumed: `budgets`/`budgetBytes`, `templateResolvers`
+> (CLI, Phase 2), and automatic `onVersionMismatch` detection (A2).
 
 > alpha.2: every unwired field now carries `@experimental` JSDoc saying it is
 > not consumed (including `budgetBytes`/`budgets`, whose JSDoc claimed "Enforced
@@ -130,7 +142,10 @@ R3 stops *identity* churn from remounting, but a *real* prop change (new
 controller calls it when present and falls back to remount when absent. Purely
 additive.
 
-### O5. Quarantine is permanent until reload — **medium**
+### O5. Quarantine is permanent until reload — **resolved in beta**
+
+> `createQuarantineRegistry({ cooldownMs })` → half-open single probe; the
+> outlet schedules it itself. Default unchanged (permanent).
 
 `createQuarantineRegistry` has no TTL or half-open state. One bad deploy
 window, and an MFE stays dark for the life of the tab even after the remote
@@ -140,7 +155,12 @@ recovers.
 `createQuarantineRegistry({ cooldownMs })` → after cooldown, the next outlet
 start is a single half-open probe. Default off to keep today's behavior.
 
-### O6. CSS injection vs. strict CSP and Shadow DOM — **medium**
+### O6. CSS injection vs. strict CSP and Shadow DOM — **CSP resolved in beta**
+
+> The snippet copies the nonce from `<meta property="csp-nonce">` (Vite's
+> convention); the e2e serves the shell under `style-src 'nonce-…'` and was
+> verified to fail without it. Shadow-DOM-scoped injection and removal on
+> unmount remain open.
 
 The injected `<style>` needs `style-src 'unsafe-inline'` or a nonce, so
 CSP-strict hosts (common in the enterprise audience the plan targets) will
@@ -192,7 +212,11 @@ and CI tests the two maintained LTS lines, 22 and 24.
 Each move strengthens an existing invariant rather than adding a new
 subsystem.
 
-### A1. A resolved-config pipeline (unblocks O1)
+### A1. A resolved-config pipeline (unblocks O1) — **landed in beta**
+
+> `resolveConfig(config, { cwd })` in `@mfkit/kit`. One deliberate choice:
+> discovered entries never replace a manifest-declared name (invariant 4).
+> The old discovery JSDoc said "last wins", but nothing consumed it.
 
 Today every entry point (`mfkitMFE`, `mfkitShell`, `generateTurboConfig`,
 `generateRemoteTypes`) reads the raw manifest independently, and plugins have
@@ -288,6 +312,6 @@ optional `integrity` field per MFE (build emits hashes; shell verifies before
 |---|---|---|
 | **v0.1.0-alpha.1** (now) | This review's fixes + OSS scaffolding | Already done; ship it. |
 | **v0.1.0-alpha.2** ✅ | O1 JSDoc `@experimental`, O2 adapter versions, O7 race, O9 `reason` field, coverage reporting, test layers L3/L4/L6 + React 19 — which surfaced and fixed R7–R9 | Done. The fault-injection layer paid for itself on its first run. |
-| **v0.1.0-beta** | A1 resolved-config pipeline, `healing` wired, O5 cooldown, O6 CSP nonce, React 19 + Vue example variants | Makes the plugin system real, broadens the tested matrix. |
+| **v0.1.0-beta** ✅ | A1 resolved-config pipeline, `healing` wired, O5 cooldown, O6 CSP nonce, Vue + Lit MFEs, dev-mode e2e, all six fault scenarios, API reports, property tests + coverage gates, which surfaced R10–R11 | Done. |
 | **v0.2** | A4 outlet core + Vue shell, A5 `mfkit sync/doctor`, O3/O4 (additive contract fields) | Contract additions batched into one plugin-api minor. |
 | **v0.3+** | A2 version-skew loop, A3 runtime graph, A6 integrity | Builds on A1/A4. |

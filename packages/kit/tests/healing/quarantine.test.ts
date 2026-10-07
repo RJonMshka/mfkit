@@ -36,3 +36,34 @@ describe("createQuarantineRegistry", () => {
     expect(r.isQuarantined("mfe_b")).toBe(false);
   });
 });
+
+describe("createQuarantineRegistry — cooldown (review O5)", () => {
+  it("is permanent without a cooldown", () => {
+    let t = 0;
+    const r = createQuarantineRegistry({ now: () => t });
+    r.quarantine("mfe_a", "down");
+    t = 1e12;
+    expect(r.isQuarantined("mfe_a")).toBe(true);
+    expect(r.isHalfOpen?.("mfe_a")).toBe(false);
+    expect(r.snapshot().get("mfe_a")?.retryAt).toBeUndefined();
+  });
+
+  it("goes half-open once the cooldown elapses, and re-quarantine restarts it", () => {
+    let t = 1_000;
+    const r = createQuarantineRegistry({ cooldownMs: 500, now: () => t });
+    r.quarantine("mfe_a", "down");
+    expect(r.snapshot().get("mfe_a")?.retryAt).toBe(1_500);
+    t = 1_499;
+    expect([r.isQuarantined("mfe_a"), r.isHalfOpen?.("mfe_a")]).toEqual([true, false]);
+    t = 1_500;
+    expect([r.isQuarantined("mfe_a"), r.isHalfOpen?.("mfe_a")]).toEqual([false, true]);
+    r.quarantine("mfe_a", "still down");
+    expect([r.isQuarantined("mfe_a"), r.isHalfOpen?.("mfe_a")]).toEqual([true, false]);
+    expect(r.snapshot().get("mfe_a")?.retryAt).toBe(2_000);
+  });
+
+  it("rejects a nonsensical cooldown", () => {
+    expect(() => createQuarantineRegistry({ cooldownMs: -1 })).toThrow(RangeError);
+    expect(() => createQuarantineRegistry({ cooldownMs: Number.NaN })).toThrow(RangeError);
+  });
+});

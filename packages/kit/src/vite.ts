@@ -20,6 +20,7 @@ import type {
 import type { Plugin, UserConfig } from "vite";
 
 import { MFKitConfigError } from "./index.js";
+import { resolveConfig } from "./resolve.js";
 import { resolveAdapter } from "./vite/adapter-resolve.js";
 import { cssInjectedByJs } from "./vite/css-inject.js";
 import { deriveMFE, deriveShell, findMFE } from "./vite/derive.js";
@@ -28,6 +29,12 @@ import { logInferred } from "./vite/inference-log.js";
 export interface MFKitViteOptions {
   /** Working directory the adapter resolves relative paths from. Defaults to process.cwd(). */
   readonly cwd?: string;
+  /**
+   * Workspace root handed to discovery strategies (`DiscoveryContext.cwd`).
+   * Vite runs per app, so `cwd` is usually the app's folder; set this when a
+   * discovery strategy scans the workspace. Defaults to `cwd`.
+   */
+  readonly root?: string;
   /** dev → middleware mode, fallback localhost URLs. build → production. Defaults to "build". */
   readonly mode?: AdapterMode;
   /** Adapters that win over built-ins. Useful for custom frameworks or stubbing in tests. */
@@ -43,6 +50,15 @@ export interface MFKitViteOptions {
    * `mfkitShell` (a shell loads its own HTML).
    */
   readonly injectCss?: boolean;
+  /**
+   * Module Federation share strategy for the shell. Defaults to
+   * `"loaded-first"`: the shell's own singletons are used and remotes are
+   * fetched only when an outlet asks for them. The MF default,
+   * `"version-first"`, fetches *every* remote entry during startup to pick the
+   * highest shared version — so one slow or hanging remote held the whole
+   * shell's first render hostage (review R10). Ignored by `mfkitMFE`.
+   */
+  readonly shareStrategy?: "loaded-first" | "version-first";
 }
 
 export async function mfkitMFE(
@@ -54,9 +70,13 @@ export async function mfkitMFE(
   const cwd = opts.cwd ?? process.cwd();
   const logEnabled = opts.logInferred ?? true;
 
-  const entry = findMFE(config, name);
-  const adapter = await resolveAdapter(entry.framework, collectAdapters(config, opts.adapters));
-  const resolved = deriveMFE(config, entry, adapter, { cwd, exists: existsSync });
+  const manifest = await resolveConfig(config, { cwd: opts.root ?? cwd });
+  const entry = findMFE(manifest, name);
+  const adapter = await resolveAdapter(entry.framework, [
+    ...(opts.adapters ?? []),
+    ...manifest.adapters,
+  ]);
+  const resolved = deriveMFE(manifest, entry, adapter, { cwd, exists: existsSync });
 
   const federation = await loadFederation();
   const frameworkPlugins = adapter.plugins({ entry, mode, cwd }) as readonly Plugin[];
@@ -95,11 +115,13 @@ export async function mfkitShell(
   const cwd = opts.cwd ?? process.cwd();
   const logEnabled = opts.logInferred ?? true;
 
-  const adapter = await resolveAdapter(
-    config.shell.framework,
-    collectAdapters(config, opts.adapters),
-  );
-  const resolved = deriveShell(config, adapter, { mode });
+  // Resolved, so MFEs contributed by discovery land in the remotes map.
+  const manifest = await resolveConfig(config, { cwd: opts.root ?? cwd });
+  const adapter = await resolveAdapter(config.shell.framework, [
+    ...(opts.adapters ?? []),
+    ...manifest.adapters,
+  ]);
+  const resolved = deriveShell(manifest, adapter, { mode });
 
   const federation = await loadFederation();
   const frameworkPlugins = adapter.plugins({
@@ -116,6 +138,7 @@ export async function mfkitShell(
     name: config.shell.name,
     remotes: toMFRemotes(resolved.remotes),
     shared: toMFShared(resolved.shared),
+    shareStrategy: opts.shareStrategy ?? "loaded-first",
     dts: false,
   });
 
@@ -136,19 +159,6 @@ export async function mfkitShell(
 }
 
 // ─── Internals ──────────────────────────────────────────────────────────────
-
-// Precedence, highest first: `opts.adapters`, then `config.plugins` from last
-// to first (the plugin contract says later plugins override earlier ones),
-// then built-ins inside resolveAdapter. resolveAdapter takes the first match.
-function collectAdapters(
-  config: MFKitConfig,
-  explicit: readonly FrameworkAdapter[] = [],
-): readonly FrameworkAdapter[] {
-  const fromPlugins = [...(config.plugins ?? [])]
-    .reverse()
-    .flatMap((p) => p.frameworkAdapters ?? []);
-  return [...explicit, ...fromPlugins];
-}
 
 type FederationFn = (opts: Record<string, unknown>) => Plugin | readonly Plugin[];
 

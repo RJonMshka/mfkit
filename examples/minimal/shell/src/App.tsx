@@ -1,4 +1,4 @@
-import { createFederationLoader } from "@mfkit/kit/healing";
+import { createFederationLoader, strictStrategy } from "@mfkit/kit/healing";
 import { MFKitOutlet, MFKitProvider } from "@mfkit/kit/react";
 import * as federationRuntime from "@module-federation/runtime";
 
@@ -23,15 +23,24 @@ import config from "../../mfkit.config";
 // `loadRemote` returns `unknown` here and the outlet validates the shape.
 const loadRemote = createFederationLoader(federationRuntime);
 
+// Strategies are swappable per provider (or per outlet). `?mfkit-strategy=strict`
+// demonstrates the lockdown mode — fail fast, no retries — and is what the
+// fault-injection e2e uses to exercise it. Without it, the config's strategy
+// (here: the forgiving default) applies.
+const strictMode =
+  typeof location !== "undefined" &&
+  new URLSearchParams(location.search).get("mfkit-strategy") === "strict";
+const strategy = strictMode ? strictStrategy() : undefined;
+
 const sectionStyle = { marginTop: "2rem" } as const;
 
 export function App() {
   return (
-    <MFKitProvider loadRemote={loadRemote} entries={config.mfes}>
+    <MFKitProvider loadRemote={loadRemote} config={config} {...(strategy ? { strategy } : {})}>
       <main style={{ fontFamily: "system-ui, sans-serif", maxWidth: 720, margin: "2rem auto" }}>
         <h1>{config.name} — MFKit shell</h1>
         <p>
-          Two federated MFEs, one manifest. React and Svelte, each mounted through{" "}
+          Four federated MFEs, one manifest. React, Svelte, Vue, and Lit, each mounted through{" "}
           <code>&lt;MFKitOutlet&gt;</code> with the default forgiving healing strategy.
         </p>
 
@@ -56,6 +65,16 @@ export function App() {
               </div>
             )}
           />
+        </section>
+
+        <section style={sectionStyle}>
+          <h2>mfe_vue — Vue</h2>
+          <MFKitOutlet remote="mfe_vue" />
+        </section>
+
+        <section style={sectionStyle}>
+          <h2>mfe_lit — Lit</h2>
+          <MFKitOutlet remote="mfe_lit" />
         </section>
       </main>
     </MFKitProvider>

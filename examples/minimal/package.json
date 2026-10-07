@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/smoke.mjs",
     "e2e": "node scripts/e2e.mjs",
+    "e2e:dev": "node scripts/e2e.mjs --dev",
     "faults": "node scripts/faults.mjs",
     "clean": "rm -rf .turbo"
   },

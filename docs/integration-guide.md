@@ -185,6 +185,14 @@ export default defineConfig(async () => {
 - Builds the remotes map (`mfe_metrics: "http://localhost:5174/remoteEntry.js"`
   in dev; uses `entry.origin` in production builds).
 - Composes shared singletons across adapter defaults + manifest + shell-only.
+- Sets `shareStrategy: "loaded-first"`: the shell's own singletons are used,
+  and remotes are fetched only when an outlet asks for them. The MF default,
+  `"version-first"`, fetches every remote during startup, so one slow remote
+  delays the whole shell. Override with `{ shareStrategy: "version-first" }`
+  only if you need cross-remote version negotiation and accept that cost.
+- Runs `resolveConfig` first, so MFEs contributed by discovery strategies land
+  in the remotes map. Pass `root: <workspace root>` if a strategy scans the
+  workspace (Vite runs per app, so `cwd` is the app folder).
 - Returns the shell's Vite `UserConfig`.
 
 ---
@@ -208,10 +216,7 @@ const loadRemote = createFederationLoader(federationRuntime);
 
 createRoot(document.getElementById("root")!).render(
   <BrowserRouter>
-    <MFKitProvider
-      loadRemote={loadRemote}
-      entries={config.mfes}
-    >
+    <MFKitProvider loadRemote={loadRemote} config={config}>
       <Routes>
         <Route path="/metrics/*" element={<MFKitOutlet remote="mfe_metrics" />} />
         <Route path="/config/*"  element={<MFKitOutlet remote="mfe_config"  />} />
@@ -234,6 +239,9 @@ createRoot(document.getElementById("root")!).render(
 - `createFederationLoader` wraps the MF runtime so a retry after a failure
   re-registers the remote under a cache-busted URL. Without it, the runtime
   replays its cached rejection and retries never reach the network.
+- `config={config}` gives the provider the manifest entries and the
+  healing strategy the config declares (`config.healing`, else the last
+  plugin's, else forgiving). Explicit `entries` / `strategy` props still win.
 - `<MFKitProvider>` supplies the host-wide `loadRemote`, default healing
   strategy (forgiving), shared quarantine registry, and the manifest
   entries map.
@@ -386,7 +394,32 @@ defineConfig({
 });
 ```
 
-The three nesting levels: config → provider → outlet. Most specific wins.
+The three nesting levels: config (or a plugin) → provider → outlet. Most
+specific wins. `<MFKitProvider config={config}>` picks up the config level
+automatically.
+
+**Recover without a reload (cooldown):** by default a quarantined MFE stays
+down until the user clicks "Try again" or reloads. Give the registry a
+cooldown and quarantine becomes a circuit breaker. After `cooldownMs` the
+outlet makes **one** probe attempt on its own. If it succeeds, the MFE mounts.
+If it fails, the MFE is quarantined again immediately, with no new retry storm.
+
+```tsx
+import { createQuarantineRegistry } from "@mfkit/kit/healing";
+
+const registry = createQuarantineRegistry({ cooldownMs: 30_000 });
+<MFKitProvider loadRemote={loadRemote} config={config} registry={registry}>…</MFKitProvider>
+```
+
+### Strict Content Security Policy
+
+Kit folds each remote's CSS into its entry and injects it as a `<style>` at
+load time. Under `style-src 'nonce-…'` that tag needs the page's nonce, which
+kit reads from `<meta property="csp-nonce" nonce="…">`, Vite's convention.
+Vite emits that tag for you when you set `html.cspNonce` in the shell's Vite
+config. If your server renders the HTML, emit the tag with the same nonce
+as the `Content-Security-Policy` header. Without it, remotes render unstyled
+and the console shows a CSP violation.
 
 ---
 
@@ -462,13 +495,17 @@ runs.
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `Unknown framework "X"` | No adapter for `X` | Use a built-in (`react`/`svelte`/`vue`/`angular`/`lit`) or register a custom one via `MFKitPlugin.frameworkAdapters` |
+| `Unknown framework "X"` | No adapter for `X` | Use a built-in (`react`/`svelte`/`vue`/`angular`/`lit`) or register a custom one via `plugins: [{ name, frameworkAdapters: [...] }]` |
 | `@module-federation/vite is not installed` | Peer missing | `pnpm add -DW @module-federation/vite` |
 | `Framework adapter "react" needs @vitejs/plugin-react` | Framework peer missing | Install the named package as a dev dep |
 | `Duplicate MFE name / port / route` | Two entries collide | Pick unique values; cross-field validator says exactly which entries |
 | `port must be a valid JS identifier` etc. | Schema violation | Read the aggregated `MFKitConfigError.issues` — every problem at once |
 | Shell typecheck: `Cannot find module "mfe_X/lifecycle"` | `.d.ts` not generated or not in tsconfig `include` | Run `gen:types`, add `.mfkit/generated/remotes.d.ts` to `include` |
 | MFE never mounts, no error | Probably quarantined silently | Read browser console, or set `<MFKitOutlet quarantinedFallback={...}>` |
+| Whole shell blank when one remote is down | Remotes imported by specifier (`import("mfe_x/…")`) are preloaded before the app starts | Load through `createFederationLoader` + `<MFKitProvider loadRemote>` (Step 5) |
+| Retries happen but never succeed after the remote recovers | Plain MF `loadRemote` replays its cached failure | Wrap the runtime with `createFederationLoader` |
+| Remote unstyled in the shell, CSP error in console | No nonce for kit's injected `<style>` | See "Strict Content Security Policy" above |
+| Console: `The remote "x" is already registered…` after a failure | Expected: `createFederationLoader` re-registers a failed remote under a fresh URL so retries refetch | Nothing to fix; it's an MF runtime warning |
 | Mount succeeds locally, blank in production build | `entry.origin` not set; remotes resolve to localhost | Set `origin` on each MFE entry for production builds |
 
 ---
