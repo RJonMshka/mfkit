@@ -4,14 +4,39 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 8
     groups:
-      # Framework plugins move together; one PR per week instead of five.
+      # Minor/patch updates are batched; majors arrive one PR each so a
+      # breaking upgrade never hides inside a routine bump.
       vite-ecosystem:
         patterns: ["vite", "@vitejs/*", "@sveltejs/*", "@analogjs/*", "@module-federation/*"]
+        update-types: [minor, patch]
+      # vitest and its coverage provider must stay on the same version.
+      vitest:
+        patterns: ["vitest", "@vitest/*"]
       tooling:
-        patterns: ["@biomejs/*", "@changesets/*", "tsup", "turbo", "typescript", "vitest", "tsx"]
+        patterns: ["@biomejs/*", "@changesets/*", "tsup", "turbo", "typescript", "tsx"]
+        update-types: [minor, patch]
+    ignore:
+      # @types/node tracks the engines floor (Node >= 22), not the newest Node:
+      # newer types would typecheck calls that don't exist on the floor.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # React 18 in packages/kit is deliberate: kit's DOM tests run on the peer
+      # floor while examples/minimal runs React 19.
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react-dom"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # v2 needs Changesets CLI v3; upgrade the CLI and the action together.
+      - dependency-name: "changesets/action"
+        update-types: ["version-update:semver-major"]

@@ -40,8 +40,10 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Pinned to v1: changesets/action v2 requires Changesets CLI v3 and fails
+      # outright with our CLI v2. Move both together (see dependabot.yml).
       - name: Create Release PR or Publish
-        uses: changesets/action@v2
+        uses: changesets/action@v1
         with:
           publish: pnpm release
           commit: "chore: version packages"
