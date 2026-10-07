@@ -45,10 +45,13 @@ export class MFEHealingError extends Error {
 export class MFEQuarantinedError extends Error {
   override readonly name = "MFEQuarantinedError";
   readonly entryName: string;
+  /** Why the MFE was quarantined — the triggering error's message. */
+  readonly reason: string;
   override readonly cause?: Error;
   constructor(entryName: string, reason: string, cause?: Error) {
     super(`MFE "${entryName}" quarantined: ${reason}`);
     this.entryName = entryName;
+    this.reason = reason;
     if (cause) this.cause = cause;
   }
 }

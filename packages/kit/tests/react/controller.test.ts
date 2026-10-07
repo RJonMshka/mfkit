@@ -338,3 +338,67 @@ describe("createOutletController — stop and cancellation", () => {
     expect(capturedSignal?.aborted).toBe(true);
   });
 });
+
+describe("createOutletController — regressions from the 2026-10 review", () => {
+  // O9: the reason used to be regex-parsed back out of the message, and `.`
+  // stops at a newline — multi-line errors were truncated.
+  it("surfaces the full multi-line quarantine reason", async () => {
+    const loadRemote = vi.fn().mockRejectedValue(new Error("line one\nline two"));
+    const { controller, harness } = makeController({
+      loadRemote,
+      strategy: forgivingStrategy({ maxAttempts: 1 }),
+    });
+    controller.start();
+    await vi.runAllTimersAsync();
+    expect(harness.states.at(-1)).toEqual({ kind: "quarantined", reason: "line one\nline two" });
+  });
+
+  // O7: an async unmount from the previous cycle must finish before the next
+  // mount touches the same container — even from a different controller.
+  it("waits for a pending async unmount before mounting into the same container", async () => {
+    const container = fakeContainer();
+    const events: string[] = [];
+    let finishUnmount: (() => void) | null = null;
+    const slowUnmount: MFEDefinition = {
+      mount: vi.fn(async () => {
+        events.push("mount:first");
+      }),
+      unmount: vi.fn(
+        () =>
+          new Promise<void>((resolve) => {
+            events.push("unmount:first:start");
+            finishUnmount = () => {
+              events.push("unmount:first:end");
+              resolve();
+            };
+          }),
+      ),
+    };
+    const second: MFEDefinition = {
+      mount: vi.fn(async () => {
+        events.push("mount:second");
+      }),
+      unmount: vi.fn(),
+    };
+
+    const a = makeController({ container, loadRemote: vi.fn().mockResolvedValue(slowUnmount) });
+    a.controller.start();
+    await vi.runAllTimersAsync();
+
+    const stopping = a.controller.stop();
+    const b = makeController({ container, loadRemote: vi.fn().mockResolvedValue(second) });
+    b.controller.start();
+    await vi.runAllTimersAsync();
+    expect(second.mount).not.toHaveBeenCalled();
+
+    (finishUnmount as (() => void) | null)?.();
+    await stopping;
+    await vi.runAllTimersAsync();
+    expect(events).toEqual([
+      "mount:first",
+      "unmount:first:start",
+      "unmount:first:end",
+      "mount:second",
+    ]);
+  });
+});

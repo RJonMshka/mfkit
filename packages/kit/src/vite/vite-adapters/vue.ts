@@ -1,10 +1,14 @@
 import type { FrameworkAdapter } from "@mfkit/plugin-api";
 import vue from "@vitejs/plugin-vue";
 
+// No `requiredVersion` (review O2): @module-federation/vite fills it with
+// `^<installed version>`. A hardcoded range went stale (React 19, Angular 18+)
+// and was worse than stale — the MF plugin parses the *provided* version out of
+// `requiredVersion`, so a React 19 app advertised itself as react@18.0.0.
 const adapter: FrameworkAdapter = {
   id: "vue",
   defaultShared: {
-    vue: { singleton: true, requiredVersion: "^3.0.0" },
+    vue: { singleton: true },
   },
   plugins: () => {
     const p = vue();

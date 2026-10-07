@@ -65,14 +65,30 @@ const PEER_BY_ID: Readonly<Record<string, string | undefined>> = {
   lit: undefined,
 };
 
-function peerInstallHint(id: FrameworkId, err: unknown): string | null {
+// Name the package that is *actually* missing. Node reports it as
+// `Cannot find package 'x' imported from …` (or `module`). Matching on the
+// adapter's own peer name anywhere in the message misfired when the peer was
+// installed but one of *its* peers wasn't — the peer's name appeared in the
+// "imported from" path, so we told users to install what they already had.
+const MISSING_PKG = /Cannot find (?:package|module) '((?:@[^/']+\/)?[^/']+)/u;
+
+export function peerInstallHint(id: FrameworkId, err: unknown): string | null {
   if (!(err instanceof Error)) return null;
   const peer = PEER_BY_ID[id];
   if (!peer) return null;
-  if (!err.message.includes(peer)) return null;
+  const missing = MISSING_PKG.exec(err.message)?.[1];
+  if (missing === undefined) {
+    if (!err.message.includes(peer)) return null;
+    return (
+      `Framework adapter "${id}" needs ${peer} installed.\n` +
+      `  pnpm add -D ${peer}\n` +
+      `Underlying error: ${err.message}`
+    );
+  }
+  const via = missing === peer ? "" : ` (required by ${peer})`;
   return (
-    `Framework adapter "${id}" needs ${peer} installed.\n` +
-    `  pnpm add -D ${peer}\n` +
+    `Framework adapter "${id}" could not load: ${missing} is not installed${via}.\n` +
+    `  pnpm add -D ${missing}\n` +
     `Underlying error: ${err.message}`
   );
 }

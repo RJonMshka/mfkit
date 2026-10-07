@@ -54,7 +54,11 @@ export interface HealingStrategy {
   readonly onLoadError: (ctx: HealingContext) => HealingDecision;
   /** Called when `mount` throws or rejects. */
   readonly onMountError: (ctx: HealingContext) => HealingDecision;
-  /** Called once per detected singleton version mismatch. */
+  /**
+   * Called once per detected singleton version mismatch.
+   * @experimental `@mfkit/kit` does not detect skew automatically yet; this
+   * runs only when you call `checkSingletonVersion` from `@mfkit/kit/healing`.
+   */
   readonly onVersionMismatch: (ctx: VersionMismatchContext) => VersionMismatchVerdict;
   /** Upper bound on retries before forcing quarantine. */
   readonly maxAttempts: number;
