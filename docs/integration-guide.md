@@ -198,9 +198,13 @@ In your shell's React entry, wrap your tree in `<MFKitProvider>` and drop
 // apps/shell/src/main.tsx
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { createFederationLoader } from "@mfkit/kit/healing";
 import { MFKitProvider, MFKitOutlet } from "@mfkit/kit/react";
-import { loadRemote } from "@module-federation/enhanced/runtime";
+import * as federationRuntime from "@module-federation/runtime";
 import config from "../../../mfkit.config";
+
+// Retries after a failure refetch the remote (the MF runtime caches failures).
+const loadRemote = createFederationLoader(federationRuntime);
 
 createRoot(document.getElementById("root")!).render(
   <BrowserRouter>
@@ -217,8 +221,19 @@ createRoot(document.getElementById("root")!).render(
 );
 ```
 
+> **Load remotes through `loadRemote`, never `import("mfe_x/lifecycle")`.**
+> `@module-federation/vite` preloads every remote the shell imports by
+> specifier, all at once, before your app starts. If one of them is down, the
+> whole shell stays blank and no outlet ever runs. Remotes loaded at runtime
+> through the provider are fetched only when an outlet asks for them, so a
+> failure stays inside that outlet. Add `@module-federation/runtime` to the
+> shell's dependencies (same version `@module-federation/vite` uses).
+
 **What's happening:**
 
+- `createFederationLoader` wraps the MF runtime so a retry after a failure
+  re-registers the remote under a cache-busted URL. Without it, the runtime
+  replays its cached rejection and retries never reach the network.
 - `<MFKitProvider>` supplies the host-wide `loadRemote`, default healing
   strategy (forgiving), shared quarantine registry, and the manifest
   entries map.

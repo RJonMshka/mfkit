@@ -67,7 +67,11 @@ export default defineMFE({
 
 ```tsx
 // apps/shell/src/App.tsx — mount any MFE, any framework
+import { createFederationLoader } from "@mfkit/kit/healing";
 import { MFKitOutlet, MFKitProvider } from "@mfkit/kit/react";
+import * as federationRuntime from "@module-federation/runtime";
+
+const loadRemote = createFederationLoader(federationRuntime);
 
 <MFKitProvider loadRemote={loadRemote} entries={config.mfes}>
   <MFKitOutlet remote="mfe_clock" />
@@ -85,6 +89,7 @@ every PR.
 
 ```bash
 pnpm add -D @mfkit/kit@alpha @module-federation/vite vite
+pnpm add @module-federation/runtime        # in the shell: loads remotes at runtime
 # plus the Vite plugin for each framework you use, e.g.
 pnpm add -D @vitejs/plugin-react @sveltejs/vite-plugin-svelte
 ```
@@ -100,13 +105,13 @@ never installs React.
 | Vite + MF config generation for MFEs and shell | ✅ React, Svelte (CI-tested) · Vue, Lit, Angular (adapters exist, not yet CI-tested) |
 | Inferred ports / exposes / remote URLs, logged in dev | ✅ |
 | Remote CSS travels with the remote entry | ✅ |
-| `<MFKitOutlet>`: retry → quarantine, custom slots | ✅ React shells |
+| `<MFKitOutlet>`: retry → quarantine, custom slots | ✅ React 18 + 19 shells; proven by fault-injection e2e |
 | Typed federated imports (`.d.ts` generation + watcher) | ✅ |
 | Turbo pipeline generation (`turbo dev` starts all remotes) | ✅ |
 | Custom framework adapters via `config.plugins` or `adapters` option | ✅ |
 | `mfkit-migrate` CLI | ✅ infrastructure; first codemods land v0.3 |
 | Vue / Svelte **shell** outlets | 🔜 v0.2 |
-| Plugin `healing`/`discovery`/`setup` hooks, automatic singleton-skew detection | 🧪 typed, not yet wired. See [review O1](docs/project-review-2026-10.md#o1-typed-but-unwired-contract-surface--high) |
+| Plugin `healing`/`discovery`/`setup` hooks, budgets, automatic singleton-skew detection | 🧪 typed and marked `@experimental`, not yet wired. See [review O1](docs/project-review-2026-10.md#o1-typed-but-unwired-contract-surface--high) |
 | `create-mfkit` scaffolder | 🔜 Phase 2 |
 
 ## Packages

@@ -34,9 +34,22 @@ into the entry chunks instead. Opt out when the host owns all styling:
 mfkitMFE(config, "mfe_clock", { injectCss: false });
 ```
 
-**`<MFKitProvider entries={[...]} />` inline is safe.** The entry map is keyed
-on content, not array identity, so a re-render above the provider won't remount
-your MFEs.
+**Load remotes at runtime, through `createFederationLoader`.** In the shell,
+`import("mfe_x/lifecycle")` makes `@module-federation/vite` preload every
+remote before the app starts, so one remote outage blanks the whole shell.
+Use the MF runtime instead, wrapped so that retries really refetch (the
+runtime caches failed loads):
+
+```ts
+import { createFederationLoader } from "@mfkit/kit/healing";
+import * as federationRuntime from "@module-federation/runtime";
+
+<MFKitProvider loadRemote={createFederationLoader(federationRuntime)} entries={config.mfes}>
+```
+
+**Inline `entries={[...]}` and `props={{...}}` are safe.** The entry map is keyed
+on content and outlet props are compared shallowly, so a re-render above the
+outlet won't remount your MFEs.
 
 Status: alpha. Phase 1 surface is complete; validated by DevNexus and the
 minimal example.
