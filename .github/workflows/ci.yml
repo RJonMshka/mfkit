@@ -6,10 +6,25 @@ on:
   pull_request:
     branches: [main]
 
+# Read-only by default; release.yml scopes its own write permissions.
+permissions:
+  contents: read
+
+# A new push to the same PR supersedes the in-flight run.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   verify:
-    name: lint + typecheck + build + test
+    name: verify (node ${{ matrix.node }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # engines.node is ">=22": both maintained LTS lines. (Node 20 dropped —
+        # EOL since 2026-04, see docs/project-review-2026-10.md O8.)
+        node: [22, 24]
     steps:
       - uses: actions/checkout@v4
 
@@ -19,7 +34,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ matrix.node }}
           cache: pnpm
 
       - name: Install dependencies
@@ -29,8 +44,8 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .turbo
-          key: turbo-${{ runner.os }}-${{ github.sha }}
-          restore-keys: turbo-${{ runner.os }}-
+          key: turbo-${{ runner.os }}-node${{ matrix.node }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-node${{ matrix.node }}-
 
       - name: Lint
         run: pnpm lint
@@ -44,8 +59,70 @@ jobs:
       - name: Test
         run: pnpm test
 
+  example:
+    name: example (smoke + e2e)
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      # Invariant 3: the manifest is the single source of truth. Committed
+      # generated artifacts must match what the manifest produces today.
+      - name: Generated artifacts are up to date
+        run: |
+          pnpm --filter mfkit-example-minimal gen
+          git diff --exit-code -- examples/minimal/.mfkit/generated \
+            || { echo "::error::examples/minimal/.mfkit/generated is stale — run 'pnpm --filter mfkit-example-minimal gen' and commit."; exit 1; }
+
       - name: Example smoke test (HTTP)
         run: pnpm --filter mfkit-example-minimal smoke
 
       - name: Example e2e (headless Chrome)
         run: pnpm --filter mfkit-example-minimal e2e
+
+  package:
+    name: package correctness
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm build
+
+      # What consumers actually install: exports map, files, and types must
+      # resolve. ESM-only by design, so CJS/node10 resolution is out of scope.
+      - name: publint + are-the-types-wrong
+        run: |
+          for pkg in plugin-api kit codemods; do
+            echo "::group::$pkg"
+            (cd packages/$pkg && npx --yes publint@0.3 --strict && npx --yes @arethetypeswrong/cli@0.18 --pack --profile esm-only)
+            echo "::endgroup::"
+          done

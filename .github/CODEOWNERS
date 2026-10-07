@@ -1,0 +1,4 @@
+# Default reviewers. The contract package gets an explicit line so a second
+# maintainer can be added there first as the project grows.
+*                       @RJonMshka
+/packages/plugin-api/   @RJonMshka

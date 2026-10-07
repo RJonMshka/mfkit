@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Framework plugins move together; one PR per week instead of five.
+      vite-ecosystem:
+        patterns: ["vite", "@vitejs/*", "@sveltejs/*", "@analogjs/*", "@module-federation/*"]
+      tooling:
+        patterns: ["@biomejs/*", "@changesets/*", "tsup", "turbo", "typescript", "vitest", "tsx"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
