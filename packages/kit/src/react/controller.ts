@@ -60,6 +60,28 @@ export function createOutletController(opts: OutletControllerOptions): OutletCon
   let mounted: { definition: MFEDefinition; container: HTMLElement } | null = null;
   /** Generation counter — discards stale async results after a restart. */
   let generation = 0;
+  /** Pending half-open probe after a cooldown quarantine (review O5). */
+  let probeTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function clearProbe(): void {
+    if (probeTimer !== null) clearTimeout(probeTimer);
+    probeTimer = null;
+  }
+
+  // With a cooldown registry, a quarantined outlet re-probes on its own when
+  // the record goes half-open — no click, no reload.
+  function scheduleProbe(myGen: number): void {
+    const retryAt = opts.registry?.snapshot().get(opts.entry.name)?.retryAt;
+    if (retryAt === undefined) return;
+    clearProbe();
+    probeTimer = setTimeout(
+      () => {
+        probeTimer = null;
+        if (generation === myGen) controller.start();
+      },
+      Math.max(0, retryAt - Date.now()),
+    );
+  }
 
   function setState(state: OutletState): void {
     opts.onState(state);
@@ -122,7 +144,7 @@ export function createOutletController(opts: OutletControllerOptions): OutletCon
       definition = loaded;
     } catch (raw) {
       if (generation !== myGen || signal.aborted) return;
-      emitFailure(raw, opts);
+      emitFailure(raw, opts, myGen);
       return;
     }
 
@@ -164,7 +186,7 @@ export function createOutletController(opts: OutletControllerOptions): OutletCon
       });
     } catch (raw) {
       if (generation !== myGen || signal.aborted) return;
-      emitFailure(raw, opts);
+      emitFailure(raw, opts, myGen);
       return;
     }
 
@@ -183,8 +205,9 @@ export function createOutletController(opts: OutletControllerOptions): OutletCon
     opts.onMount?.();
   }
 
-  return {
+  const controller: OutletController = {
     start(): void {
+      clearProbe();
       const myGen = ++generation;
       // Cancel anything in-flight and tear down a prior mount.
       abortController?.abort();
@@ -193,6 +216,7 @@ export function createOutletController(opts: OutletControllerOptions): OutletCon
       void run(myGen);
     },
     async stop(): Promise<void> {
+      clearProbe();
       generation++;
       abortController?.abort();
       abortController = null;
@@ -200,12 +224,14 @@ export function createOutletController(opts: OutletControllerOptions): OutletCon
       setState({ kind: "idle" });
     },
   };
+  return controller;
 
-  function emitFailure(raw: unknown, ctx: OutletControllerOptions): void {
+  function emitFailure(raw: unknown, ctx: OutletControllerOptions, myGen: number): void {
     const err = raw instanceof Error ? raw : new Error(String(raw));
     if (err.name === "AbortError") return;
     if (err instanceof MFEQuarantinedError) {
       setState({ kind: "quarantined", reason: err.reason });
+      scheduleProbe(myGen);
     } else if (err instanceof MFEHealingError) {
       setState({ kind: "error", error: err });
     } else {

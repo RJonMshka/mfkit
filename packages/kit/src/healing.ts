@@ -35,6 +35,7 @@ export {
   createQuarantineRegistry,
   type QuarantineRecord,
   type QuarantineRegistry,
+  type QuarantineRegistryOptions,
 } from "./healing/quarantine.js";
 
 export {

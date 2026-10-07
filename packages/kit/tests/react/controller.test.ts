@@ -402,3 +402,51 @@ describe("createOutletController — regressions from the 2026-10 review", () =>
     ]);
   });
 });
+
+describe("createOutletController — cooldown auto-probe (review O5)", () => {
+  it("re-probes on its own once the quarantine cooldown elapses, and recovers", async () => {
+    const registry = createQuarantineRegistry({ cooldownMs: 1_000 });
+    const { definition } = fakeLifecycle();
+    let up = false;
+    const loadRemote = vi.fn(async () => {
+      if (!up) throw new Error("down");
+      return definition;
+    });
+    const { controller, harness } = makeController({
+      loadRemote,
+      registry,
+      strategy: forgivingStrategy({ maxAttempts: 2, initialDelayMs: 10 }),
+    });
+    controller.start();
+    await vi.advanceTimersByTimeAsync(100);
+    expect(harness.states.at(-1)?.kind).toBe("quarantined");
+    expect(loadRemote).toHaveBeenCalledTimes(2);
+
+    // Still down at the first probe: one attempt, back to quarantined.
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(loadRemote).toHaveBeenCalledTimes(3);
+    expect(harness.states.at(-1)?.kind).toBe("quarantined");
+
+    // Recovered by the next probe — no click, no reload.
+    up = true;
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(loadRemote).toHaveBeenCalledTimes(4);
+    expect(harness.states.at(-1)?.kind).toBe("mounted");
+    expect(registry.snapshot().has(entry.name)).toBe(false);
+  });
+
+  it("does not probe after stop()", async () => {
+    const registry = createQuarantineRegistry({ cooldownMs: 1_000 });
+    const loadRemote = vi.fn().mockRejectedValue(new Error("down"));
+    const { controller } = makeController({
+      loadRemote,
+      registry,
+      strategy: forgivingStrategy({ maxAttempts: 1 }),
+    });
+    controller.start();
+    await vi.advanceTimersByTimeAsync(10);
+    await controller.stop();
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(loadRemote).toHaveBeenCalledTimes(1);
+  });
+});

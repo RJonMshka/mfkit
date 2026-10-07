@@ -230,3 +230,41 @@ describe("runWithHealing — error wrapping", () => {
     expect((seen[0] as Error).message).toBe("plain string");
   });
 });
+
+describe("runWithHealing — half-open probe (review O5)", () => {
+  function halfOpenRegistry() {
+    let t = 0;
+    const registry = createQuarantineRegistry({ cooldownMs: 100, now: () => t });
+    registry.quarantine(entry.name, "down");
+    t = 100;
+    return registry;
+  }
+
+  it("makes exactly one attempt and re-quarantines on failure, skipping the strategy", async () => {
+    const registry = halfOpenRegistry();
+    const strategy = forgivingStrategy({ maxAttempts: 5, initialDelayMs: 1 });
+    const onLoadError = vi.spyOn(strategy, "onLoadError");
+    const op = vi.fn().mockRejectedValue(new Error("still down"));
+    await expect(
+      runWithHealing({ op, entry, kind: "load", strategy, registry }),
+    ).rejects.toBeInstanceOf(MFEQuarantinedError);
+    expect(op).toHaveBeenCalledTimes(1);
+    expect(onLoadError).not.toHaveBeenCalled();
+    expect(registry.isQuarantined(entry.name)).toBe(true);
+    expect(registry.snapshot().get(entry.name)?.reason).toBe("still down");
+  });
+
+  it("closes the breaker when the probe succeeds", async () => {
+    const registry = halfOpenRegistry();
+    await expect(
+      runWithHealing({
+        op: async () => "ok",
+        entry,
+        kind: "load",
+        strategy: forgivingStrategy(),
+        registry,
+      }),
+    ).resolves.toBe("ok");
+    expect(registry.snapshot().has(entry.name)).toBe(false);
+  });
+});
