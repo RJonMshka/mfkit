@@ -41,7 +41,13 @@ export interface FrameworkAdapter<BundlerPlugin = unknown> {
   readonly id: FrameworkId;
   /** Bundler plugins this adapter contributes for the given MFE/mode. */
   readonly plugins: (ctx: FrameworkAdapterContext) => readonly BundlerPlugin[];
-  /** Default dev-server port if the manifest doesn't supply one. */
+  /**
+   * @deprecated Ignored by `@mfkit/kit`. The shell computes every remote's URL
+   * from the manifest alone (it never loads an MFE's adapter), so an
+   * adapter-chosen port made the MFE serve where the shell never looked. Set
+   * `port` on the manifest entry instead. Removal is a breaking change and
+   * will ship with a codemod.
+   */
   readonly defaultPort?: number;
   /** Adapter-supplied shared deps (e.g. React adapter shares react/react-dom). */
   readonly defaultShared?: SharedDependencyMap;

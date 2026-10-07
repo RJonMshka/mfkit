@@ -1,6 +1,10 @@
+import { mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { type CliIO, main } from "../src/cli.js";
+import { type CliIO, isEntrypoint, main } from "../src/cli.js";
 import {
   __resetRegistry,
   type CodemodManifest,
@@ -182,5 +186,29 @@ describe("up", () => {
     const c = capture();
     await main(["up", "--from", "1", "--to", "2"], c.io);
     expect(observedCwd).toBe("/tmp/test-cwd");
+  });
+});
+
+describe("isEntrypoint", () => {
+  // Regression: the binary compared `import.meta.url` to `process.argv[1]`
+  // verbatim, so running it through npm's `.bin` symlink silently no-op'd.
+  it("matches when argv[1] is a symlink to the module", () => {
+    const dir = mkdtempSync(join(tmpdir(), "mfkit-cli-"));
+    const target = join(dir, "cli.js");
+    const link = join(dir, "mfkit-migrate");
+    writeFileSync(target, "");
+    symlinkSync(target, link);
+    expect(isEntrypoint(link, pathToFileURL(target).href)).toBe(true);
+  });
+
+  it("does not match a different file or a missing argv[1]", () => {
+    const dir = mkdtempSync(join(tmpdir(), "mfkit-cli-"));
+    const a = join(dir, "a.js");
+    const b = join(dir, "b.js");
+    writeFileSync(a, "");
+    writeFileSync(b, "");
+    expect(isEntrypoint(a, pathToFileURL(b).href)).toBe(false);
+    expect(isEntrypoint(undefined, pathToFileURL(b).href)).toBe(false);
+    expect(isEntrypoint(join(dir, "nope.js"), pathToFileURL(b).href)).toBe(false);
   });
 });

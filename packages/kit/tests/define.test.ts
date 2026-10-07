@@ -137,6 +137,22 @@ describe("defineConfig", () => {
     expect(() => defineConfig(bad)).toThrowError(/Port 3002 used by both/);
   });
 
+  it("throws when an MFE reuses the shell's explicit port", () => {
+    const bad: MFKitConfig = {
+      ...validConfig,
+      mfes: [{ ...validEntry, port: validConfig.shell.port! }],
+    };
+    expect(() => defineConfig(bad)).toThrowError(/already used by the shell/);
+  });
+
+  it("throws when an MFE reuses the shell's default port", () => {
+    const { port: _omit, ...shell } = validConfig.shell;
+    const bad: MFKitConfig = { ...validConfig, shell, mfes: [{ ...validEntry, port: 3000 }] };
+    expect(() => defineConfig(bad)).toThrowError(
+      /Port 3000 is already used by the shell \(default\)/,
+    );
+  });
+
   it("throws on duplicate routes across MFEs", () => {
     const bad: MFKitConfig = {
       ...validConfig,

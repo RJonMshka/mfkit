@@ -4,6 +4,9 @@
 // every command is a no-op that reports "nothing to do". Real upgrade flows
 // hang off the same surface when codemods land in v0.3+.
 
+import { realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 import {
   type CodemodManifest,
   CodemodRegistryError,
@@ -221,15 +224,21 @@ function defaultIO(): CliIO {
 }
 
 // ─── Entry ───────────────────────────────────────────────────────────────────
-// `process.argv[1]` is the script path; we only auto-execute when this file is
-// invoked directly (not when imported in tests).
+// Auto-execute only when this file is the process entry (not when imported in
+// tests). Compare *real* paths: npm installs bins as symlinks and pnpm as shims
+// pointing through `node_modules/@mfkit/codemods`, so `process.argv[1]` is a
+// link while `import.meta.url` is the resolved file. A plain URL comparison
+// made the installed binary exit 0 without doing anything.
 
-const invokedDirectly =
-  typeof process !== "undefined" &&
-  Array.isArray(process.argv) &&
-  process.argv[1] !== undefined &&
-  import.meta.url === new URL(`file://${process.argv[1]}`).href;
+export function isEntrypoint(argv1: string | undefined, moduleUrl: string): boolean {
+  if (argv1 === undefined) return false;
+  try {
+    return realpathSync(argv1) === realpathSync(fileURLToPath(moduleUrl));
+  } catch {
+    return false;
+  }
+}
 
-if (invokedDirectly) {
+if (typeof process !== "undefined" && isEntrypoint(process.argv[1], import.meta.url)) {
   void main(process.argv.slice(2)).then((code) => process.exit(code));
 }

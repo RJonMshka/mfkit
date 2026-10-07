@@ -32,7 +32,7 @@ export interface MFKitViteOptions {
   readonly mode?: AdapterMode;
   /** Adapters that win over built-ins. Useful for custom frameworks or stubbing in tests. */
   readonly adapters?: readonly FrameworkAdapter[];
-  /** Suppress the dev-mode inference log. Defaults true. */
+  /** Print the once-per-process dev-mode inference log. Defaults true; pass false to silence it. */
   readonly logInferred?: boolean;
   /**
    * Fold an MFE's built CSS into its entry chunks so styles travel with the
@@ -55,7 +55,7 @@ export async function mfkitMFE(
   const logEnabled = opts.logInferred ?? true;
 
   const entry = findMFE(config, name);
-  const adapter = await resolveAdapter(entry.framework, opts.adapters);
+  const adapter = await resolveAdapter(entry.framework, collectAdapters(config, opts.adapters));
   const resolved = deriveMFE(config, entry, adapter, { cwd, exists: existsSync });
 
   const federation = await loadFederation();
@@ -95,7 +95,10 @@ export async function mfkitShell(
   const cwd = opts.cwd ?? process.cwd();
   const logEnabled = opts.logInferred ?? true;
 
-  const adapter = await resolveAdapter(config.shell.framework, opts.adapters);
+  const adapter = await resolveAdapter(
+    config.shell.framework,
+    collectAdapters(config, opts.adapters),
+  );
   const resolved = deriveShell(config, adapter, { mode });
 
   const federation = await loadFederation();
@@ -133,6 +136,19 @@ export async function mfkitShell(
 }
 
 // ─── Internals ──────────────────────────────────────────────────────────────
+
+// Precedence, highest first: `opts.adapters`, then `config.plugins` from last
+// to first (the plugin contract says later plugins override earlier ones),
+// then built-ins inside resolveAdapter. resolveAdapter takes the first match.
+function collectAdapters(
+  config: MFKitConfig,
+  explicit: readonly FrameworkAdapter[] = [],
+): readonly FrameworkAdapter[] {
+  const fromPlugins = [...(config.plugins ?? [])]
+    .reverse()
+    .flatMap((p) => p.frameworkAdapters ?? []);
+  return [...explicit, ...fromPlugins];
+}
 
 type FederationFn = (opts: Record<string, unknown>) => Plugin | readonly Plugin[];
 

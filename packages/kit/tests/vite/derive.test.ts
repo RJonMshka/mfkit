@@ -55,15 +55,24 @@ describe("deriveMFE port resolution", () => {
     expect(r.inferred.find((f) => f.field === "port")).toBeUndefined();
   });
 
-  it("falls back to adapter.defaultPort when entry has none", () => {
+  // Regression: adapter.defaultPort used to win here, but the shell never
+  // loads MFE adapters, so it computed a different URL — and two MFEs on the
+  // same adapter both claimed the default port.
+  it("ignores adapter.defaultPort so the MFE serves where the shell looks", () => {
     const cfg: MFKitConfig = {
       ...baseConfig,
-      mfes: [{ ...baseConfig.mfes[0]!, port: undefined as never }],
+      mfes: [
+        { name: "mfe_a", framework: "react", path: "apps/a", route: "/a" },
+        { name: "mfe_b", framework: "react", path: "apps/b", route: "/b" },
+      ],
     };
-    delete (cfg.mfes[0] as { port?: number }).port;
-    const r = deriveMFE(cfg, cfg.mfes[0]!, reactAdapter);
-    expect(r.port).toBe(5180);
-    expect(r.inferred[0]?.source).toBe("adapter-default");
+    const a = deriveMFE(cfg, cfg.mfes[0]!, reactAdapter);
+    const b = deriveMFE(cfg, cfg.mfes[1]!, reactAdapter);
+    expect(a.port).not.toBe(5180);
+    expect(a.port).not.toBe(b.port);
+    const remotes = buildRemotesMap(cfg, "dev");
+    expect(remotes.mfe_a).toBe(`http://localhost:${a.port}/remoteEntry.js`);
+    expect(remotes.mfe_b).toBe(`http://localhost:${b.port}/remoteEntry.js`);
   });
 
   it("auto-assigns a port from the hash range when no default exists", () => {
@@ -77,7 +86,7 @@ describe("deriveMFE port resolution", () => {
     expect(r.inferred.find((f) => f.field === "port")?.source).toBe("auto-assigned");
   });
 
-  it("skips the adapter default when it collides with another explicit port", () => {
+  it("never auto-assigns the shell's port, explicit or defaulted", () => {
     const cfg: MFKitConfig = {
       version: MFKIT_CONFIG_VERSION,
       name: "test",

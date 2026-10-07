@@ -50,9 +50,13 @@ export function cssInjectedByJs(opts: CssInjectOptions): Plugin {
       );
       if (entryChunks.length === 0 || css.length === 0) return;
 
+      // Appended, not prepended: a prepended line would shift every mapping in
+      // the chunk's sourcemap by one line (Rollup doesn't remap after
+      // generateBundle). Appended code still runs while the remote loads,
+      // before the host can call `mount`.
       const snippet = injectionSnippet(opts.remoteName, css);
       for (const chunk of entryChunks) {
-        chunk.code = `${snippet}\n${chunk.code}`;
+        chunk.code = `${chunk.code}\n${snippet}\n`;
       }
 
       // The asset is dead weight now — and leaving it would let a stale

@@ -38,6 +38,9 @@ const JS_IDENTIFIER = /^[a-zA-Z_$][\w$]*$/u;
 const PORT_MIN = 1024;
 const PORT_MAX = 65535;
 
+/** Port the shell dev server uses when `shell.port` is omitted. */
+export const DEFAULT_SHELL_PORT = 3000;
+
 const portSchema = v.pipe(
   v.number("port must be a number"),
   v.integer("port must be an integer"),
@@ -169,6 +172,10 @@ function crossCheck(config: MFKitConfig): MFKitConfigIssue[] {
   const seenName = new Map<string, number>();
   const seenPort = new Map<number, number>();
   const seenRoute = new Map<string, number>();
+  // The shell's effective port (explicit or defaulted) is just as taken as any
+  // MFE's — a collision there means one dev server fails with EADDRINUSE.
+  const shellPort =
+    config.shell && typeof config.shell.port === "number" ? config.shell.port : DEFAULT_SHELL_PORT;
 
   config.mfes.forEach((mfe, i) => {
     if (!mfe || typeof mfe !== "object") return;
@@ -186,7 +193,12 @@ function crossCheck(config: MFKitConfig): MFKitConfigIssue[] {
       }
     }
 
-    if (typeof mfe.port === "number") {
+    if (typeof mfe.port === "number" && mfe.port === shellPort) {
+      issues.push({
+        path: `mfes[${i}].port`,
+        message: `Port ${mfe.port} is already used by the shell${config.shell?.port === undefined ? " (default)" : ""}`,
+      });
+    } else if (typeof mfe.port === "number") {
       const prev = seenPort.get(mfe.port);
       if (prev !== undefined) {
         const prevName = config.mfes[prev]?.name ?? "<earlier entry>";

@@ -22,9 +22,9 @@ export default defineConfig({
       path: "mfe-hello",
       port: 5175,
       label: "Hello (React)",
-      // The kit default expose map assumes ./src/lifecycle.ts; this MFE's
-      // lifecycle is .tsx (it renders JSX), so the mapping is explicit.
-      exposes: { "./lifecycle": "./src/lifecycle.tsx" },
+      // `exposes` omitted on purpose: the kit probes ./src/lifecycle.{ts,tsx,…}
+      // and finds this MFE's .tsx lifecycle (dx-findings #5). The example
+      // dogfoods the inference rather than hardcoding the path.
     },
     {
       name: "mfe_clock",
