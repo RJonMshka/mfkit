@@ -152,6 +152,49 @@ describe("mfkitMFE", () => {
   });
 });
 
+describe("adapters from config.plugins", () => {
+  // Regression: the unknown-framework error pointed users at
+  // MFKitPlugin.frameworkAdapters, which nothing read.
+  const solid = (tag: string): FrameworkAdapter => ({
+    id: "solid",
+    plugins: () => [{ name: `solid:${tag}` }],
+  });
+  const solidConfig = (plugins: NonNullable<MFKitConfig["plugins"]>): MFKitConfig => ({
+    ...baseConfig,
+    mfes: [{ ...baseConfig.mfes[0]!, framework: "solid" }],
+    plugins,
+  });
+  const pluginNames = (cfg: { plugins?: unknown }) =>
+    (cfg.plugins as Array<{ name: string }>).map((p) => p.name);
+
+  it("resolves a custom framework registered via MFKitPlugin.frameworkAdapters", async () => {
+    const cfg = await mfkitMFE(
+      solidConfig([{ name: "solid-plugin", frameworkAdapters: [solid("plugin")] }]),
+      "mfe_a",
+      { logInferred: false, cwd: FIXTURE_CWD },
+    );
+    expect(pluginNames(cfg)).toContain("solid:plugin");
+  });
+
+  it("lets later plugins override earlier ones, and opts.adapters override both", async () => {
+    const config = solidConfig([
+      { name: "first", frameworkAdapters: [solid("first")] },
+      { name: "second", frameworkAdapters: [solid("second")] },
+    ]);
+    const viaPlugins = await mfkitMFE(config, "mfe_a", { logInferred: false, cwd: FIXTURE_CWD });
+    expect(pluginNames(viaPlugins)).toContain("solid:second");
+    expect(pluginNames(viaPlugins)).not.toContain("solid:first");
+
+    const viaOpts = await mfkitMFE(config, "mfe_a", {
+      adapters: [solid("explicit")],
+      logInferred: false,
+      cwd: FIXTURE_CWD,
+    });
+    expect(pluginNames(viaOpts)).toContain("solid:explicit");
+    expect(pluginNames(viaOpts)).not.toContain("solid:second");
+  });
+});
+
 describe("mfkitShell", () => {
   it("returns a UserConfig with shell port and federation plugin (with remotes map)", async () => {
     federationCalls.length = 0;

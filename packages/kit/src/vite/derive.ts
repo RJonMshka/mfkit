@@ -14,12 +14,11 @@ import type {
   ShellConfig,
 } from "@mfkit/plugin-api";
 
-import { MFKitConfigError } from "../index.js";
+import { DEFAULT_SHELL_PORT, MFKitConfigError } from "../index.js";
 
 const AUTO_PORT_MIN = 5173;
 const AUTO_PORT_MAX = 5273;
 const AUTO_PORT_COUNT = AUTO_PORT_MAX - AUTO_PORT_MIN + 1;
-const DEFAULT_SHELL_PORT = 3000;
 const DEFAULT_REMOTE_ENTRY = "remoteEntry.js";
 const DEFAULT_EXPOSE_KEY = "./lifecycle";
 const DEFAULT_EXPOSES: Readonly<Record<string, string>> = Object.freeze({
@@ -50,10 +49,8 @@ export interface DeriveContext {
 }
 
 export type InferenceSource =
-  | "adapter-default"
-  | "auto-assigned"
-  | "kit-default"
-  | "fallback-origin";
+  /** @deprecated Never emitted since `adapter.defaultPort` stopped driving ports. */
+  "adapter-default" | "auto-assigned" | "kit-default" | "fallback-origin";
 
 export interface InferredField {
   readonly scope: string;
@@ -224,26 +221,18 @@ function resolveExposes(
   return exposes;
 }
 
+// Must agree with `buildRemotesMap` byte-for-byte: the MFE serves on this port
+// and the shell fetches from the port *it* computes, without ever loading the
+// MFE's adapter. So the only inputs are the manifest — `adapter.defaultPort`
+// is deliberately ignored (it made MFEs serve where the shell never looked, and
+// two MFEs sharing an adapter both claimed the same port).
 function resolveMFEPort(
   config: MFKitConfig,
   entry: MFEManifestEntry,
-  adapter: FrameworkAdapter,
+  _adapter: FrameworkAdapter,
   inferred: InferredField[],
 ): number {
   if (entry.port !== undefined) return entry.port;
-
-  if (adapter.defaultPort !== undefined) {
-    const collides = collectExplicitPorts(config).has(adapter.defaultPort);
-    if (!collides) {
-      inferred.push({
-        scope: entry.name,
-        field: "port",
-        value: String(adapter.defaultPort),
-        source: "adapter-default",
-      });
-      return adapter.defaultPort;
-    }
-  }
 
   const ports = autoAssignPorts(config);
   const p = ports.get(entry.name);
@@ -264,7 +253,7 @@ function resolveMFEPort(
 
 function collectExplicitPorts(config: MFKitConfig): Set<number> {
   const taken = new Set<number>();
-  if (config.shell.port !== undefined) taken.add(config.shell.port);
+  taken.add(config.shell.port ?? DEFAULT_SHELL_PORT);
   for (const m of config.mfes) {
     if (m.port !== undefined) taken.add(m.port);
   }

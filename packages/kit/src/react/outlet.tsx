@@ -27,6 +27,7 @@ import {
 } from "./default-slots.js";
 import { MFEErrorBoundary } from "./error-boundary.js";
 import { useMFKitContext } from "./provider.js";
+import { createPropsStabilizer } from "./stable-props.js";
 import type { MFKitOutletProps, OutletState, RetryingSlotInfo } from "./types.js";
 
 export function MFKitOutlet(props: MFKitOutletProps): ReactElement {
@@ -48,6 +49,10 @@ export function MFKitOutlet(props: MFKitOutletProps): ReactElement {
     () => resolveEntry(props, ctx?.entries),
     [props.entry, props.remote, props.basePath, ctx?.entries],
   );
+
+  // Inline `props={{...}}` must not remount the MFE on every parent render.
+  const [stabilizeProps] = useState(createPropsStabilizer);
+  const mfeProps = stabilizeProps(props.props);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<OutletState>({ kind: "idle" });
@@ -79,7 +84,7 @@ export function MFKitOutlet(props: MFKitOutletProps): ReactElement {
       registry,
       ...(props.basePath !== undefined ? { basePath: props.basePath } : {}),
       ...(props.module !== undefined ? { module: props.module } : {}),
-      ...(props.props !== undefined ? { props: props.props } : {}),
+      ...(mfeProps !== undefined ? { props: mfeProps } : {}),
       onState: setState,
       onMount: () => onMountRef.current?.(),
       onUnmount: () => onUnmountRef.current?.(),
@@ -91,7 +96,7 @@ export function MFKitOutlet(props: MFKitOutletProps): ReactElement {
     return () => {
       void controller.stop();
     };
-  }, [entry, loadRemote, strategy, registry, props.basePath, props.module, props.props, retryKey]);
+  }, [entry, loadRemote, strategy, registry, props.basePath, props.module, mfeProps, retryKey]);
 
   const overlay = renderOverlay(state, entry, props, retry);
   const isMounted = state.kind === "mounted";

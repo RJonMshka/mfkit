@@ -1,16 +1,27 @@
 {
   "name": "@mfkit/plugin-api",
-  "version": "0.0.0",
-  "description": "Stable TypeScript contract surface for MFKit. Types only — zero runtime.",
+  "version": "0.1.0-alpha.0",
+  "description": "Stable TypeScript contract surface for MFKit. Types only \u2014 zero runtime.",
+  "keywords": [
+    "mfkit",
+    "module-federation",
+    "microfrontends",
+    "micro-frontends",
+    "types",
+    "plugin-api"
+  ],
   "license": "MIT",
   "author": "Rajat Kumar",
   "repository": {
     "type": "git",
-    "url": "https://github.com/RJonMshka/mfkit.git",
+    "url": "git+https://github.com/RJonMshka/mfkit.git",
     "directory": "packages/plugin-api"
   },
   "homepage": "https://github.com/RJonMshka/mfkit/tree/main/packages/plugin-api#readme",
   "bugs": "https://github.com/RJonMshka/mfkit/issues",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -32,6 +43,7 @@
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests",
     "clean": "rm -rf dist .turbo"
   },
   "devDependencies": {

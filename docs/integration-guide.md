@@ -12,7 +12,7 @@ hard — there are ~6 files to author once, regardless of how many MFEs.
 
 ## What you need
 
-- Node ≥ 20, pnpm ≥ 10.
+- Node ≥ 22, pnpm ≥ 10.
 - A monorepo. pnpm workspaces + Turbo recommended (kit assumes this layout
   in the Turbo generator), but any setup that ships per-package `package.json`s
   with names will work.
@@ -61,7 +61,7 @@ export default defineConfig({
       framework: "svelte",
       route: "/metrics",
       path: "apps/mfe-metrics",
-      // port omitted → adapter default (or auto-assigned in 5173..5273)
+      // port omitted → auto-assigned in 5173..5273 (deterministic per name)
     },
     {
       name: "mfe_config",
@@ -198,9 +198,13 @@ In your shell's React entry, wrap your tree in `<MFKitProvider>` and drop
 // apps/shell/src/main.tsx
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { createFederationLoader } from "@mfkit/kit/healing";
 import { MFKitProvider, MFKitOutlet } from "@mfkit/kit/react";
-import { loadRemote } from "@module-federation/enhanced/runtime";
+import * as federationRuntime from "@module-federation/runtime";
 import config from "../../../mfkit.config";
+
+// Retries after a failure refetch the remote (the MF runtime caches failures).
+const loadRemote = createFederationLoader(federationRuntime);
 
 createRoot(document.getElementById("root")!).render(
   <BrowserRouter>
@@ -217,8 +221,19 @@ createRoot(document.getElementById("root")!).render(
 );
 ```
 
+> **Load remotes through `loadRemote`, never `import("mfe_x/lifecycle")`.**
+> `@module-federation/vite` preloads every remote the shell imports by
+> specifier, all at once, before your app starts. If one of them is down, the
+> whole shell stays blank and no outlet ever runs. Remotes loaded at runtime
+> through the provider are fetched only when an outlet asks for them, so a
+> failure stays inside that outlet. Add `@module-federation/runtime` to the
+> shell's dependencies (same version `@module-federation/vite` uses).
+
 **What's happening:**
 
+- `createFederationLoader` wraps the MF runtime so a retry after a failure
+  re-registers the remote under a cache-busted URL. Without it, the runtime
+  replays its cached rejection and retries never reach the network.
 - `<MFKitProvider>` supplies the host-wide `loadRemote`, default healing
   strategy (forgiving), shared quarantine registry, and the manifest
   entries map.

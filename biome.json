@@ -37,7 +37,8 @@
       "!**/.mfkit",
       "!**/coverage",
       "!**/.turbo",
-      "!**/@mf-types"
+      "!**/@mf-types",
+      "!**/.claude/settings.local.json"
     ]
   }
 }

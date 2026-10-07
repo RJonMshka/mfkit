@@ -4,7 +4,11 @@
   "initialVersions": {
     "@mfkit/codemods": "0.0.0",
     "@mfkit/kit": "0.0.0",
-    "@mfkit/plugin-api": "0.0.0"
+    "@mfkit/plugin-api": "0.0.0",
+    "mfkit-example-minimal": "0.0.0",
+    "@mfkit-example/mfe-clock": "0.0.0",
+    "@mfkit-example/mfe-hello": "0.0.0",
+    "@mfkit-example/shell": "0.0.0"
   },
-  "changesets": []
+  "changesets": ["eighty-pianos-repeat", "initial-alpha", "mighty-moons-teach"]
 }

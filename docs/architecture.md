@@ -126,7 +126,7 @@ mfkitShell(config, opts?)               // → Promise<UserConfig> for the shell
    function-wrapped path so esbuild can't inline it — that is what keeps
    subpaths tree-shakable. User-supplied adapters always win over built-ins.
 3. **Derive defaults.** `deriveMFE` / `deriveShell` fill in what you didn't
-   supply: port (adapter default → auto-assigned in `5173..5273`), exposes
+   supply: port (auto-assigned in `5173..5273`, same resolver the shell uses), exposes
    (`{ "./lifecycle": "./src/lifecycle.ts" }`), `remoteEntry.js`, and the
    composed `shared` map (`adapter.defaultShared` ← `config.shared` ←
    `entry.shared`, later keys win).

@@ -20,6 +20,14 @@ import type { LoadRemote, OutletState } from "./types.js";
 
 const DEFAULT_MODULE = "lifecycle";
 
+// Pending unmounts, keyed by container. A restart (or React re-running the
+// outlet effect, which builds a *new* controller) mounts into the same
+// container the previous cycle is still tearing down. With an async
+// `unmount` (Angular destroy, exit transitions) the old teardown could resolve
+// after the new mount and wipe it out. Every mount waits for the container's
+// pending teardown first — shared across controller instances on purpose.
+const pendingTeardowns = new WeakMap<HTMLElement, Promise<void>>();
+
 export interface OutletControllerOptions {
   readonly container: HTMLElement;
   readonly entry: MFEManifestEntry;
@@ -57,17 +65,25 @@ export function createOutletController(opts: OutletControllerOptions): OutletCon
     opts.onState(state);
   }
 
-  async function tearDownMounted(): Promise<void> {
+  function tearDownMounted(): Promise<void> {
     const m = mounted;
-    if (!m) return;
+    if (!m) return Promise.resolve();
     mounted = null;
-    try {
-      await m.definition.unmount(m.container);
-      opts.onUnmount?.();
-    } catch (raw) {
-      const err = raw instanceof Error ? raw : new Error(String(raw));
-      opts.onError?.(err);
-    }
+    const previous = pendingTeardowns.get(m.container) ?? Promise.resolve();
+    const done = previous.then(async () => {
+      try {
+        await m.definition.unmount(m.container);
+        opts.onUnmount?.();
+      } catch (raw) {
+        const err = raw instanceof Error ? raw : new Error(String(raw));
+        opts.onError?.(err);
+      }
+    });
+    pendingTeardowns.set(m.container, done);
+    void done.then(() => {
+      if (pendingTeardowns.get(m.container) === done) pendingTeardowns.delete(m.container);
+    });
+    return done;
   }
 
   async function run(myGen: number): Promise<void> {
@@ -120,6 +136,10 @@ export function createOutletController(opts: OutletControllerOptions): OutletCon
       mountId,
       signal,
     };
+
+    // O7: never mount over an unmount that hasn't finished yet.
+    await pendingTeardowns.get(opts.container);
+    if (generation !== myGen || signal.aborted) return;
 
     try {
       await runWithHealing<void>({
@@ -185,7 +205,7 @@ export function createOutletController(opts: OutletControllerOptions): OutletCon
     const err = raw instanceof Error ? raw : new Error(String(raw));
     if (err.name === "AbortError") return;
     if (err instanceof MFEQuarantinedError) {
-      setState({ kind: "quarantined", reason: extractReason(err) });
+      setState({ kind: "quarantined", reason: err.reason });
     } else if (err instanceof MFEHealingError) {
       setState({ kind: "error", error: err });
     } else {
@@ -213,12 +233,6 @@ function isRecord(v: unknown): v is Record<string, unknown> {
 
 function isMFEDefinition(v: unknown): v is MFEDefinition {
   return isRecord(v) && typeof v.mount === "function" && typeof v.unmount === "function";
-}
-
-function extractReason(err: MFEQuarantinedError): string {
-  // MFEQuarantinedError messages are `MFE "<name>" quarantined: <reason>`.
-  const m = /quarantined:\s*(.*)$/u.exec(err.message);
-  return m?.[1] ?? err.message;
 }
 
 let mountCounter = 0;

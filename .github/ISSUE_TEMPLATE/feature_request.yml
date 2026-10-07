@@ -1,0 +1,25 @@
+name: Feature request
+description: Propose a capability. Big or contract-changing ideas start in Discussions.
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you hitting?
+      description: Describe the pain in your own app, not the solution. MFKit adds features when a real consumer needs them.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What do you do today instead?
+  - type: checkboxes
+    id: contract
+    attributes:
+      label: Contract impact
+      options:
+        - label: This would change `@mfkit/plugin-api` types or `mfkit.config.ts` shape

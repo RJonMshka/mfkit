@@ -70,7 +70,10 @@ export interface MFEManifestEntry {
   readonly label?: string;
   /** Accessible description for nav tooltips and a11y. */
   readonly description?: string;
-  /** Per-MFE bundle budget in gzipped bytes. Enforced in CI when present. */
+  /**
+   * Per-MFE bundle budget in gzipped bytes.
+   * @experimental Not yet consumed by `@mfkit/kit` — validated, but nothing enforces it yet.
+   */
   readonly budgetBytes?: number;
 }
 
@@ -89,7 +92,10 @@ export interface ShellConfig {
   readonly port?: number;
   /** Production origin override. */
   readonly origin?: string;
-  /** Initial bundle budget for the shell alone (no MFEs mounted). */
+  /**
+   * Initial bundle budget for the shell alone (no MFEs mounted).
+   * @experimental Not yet consumed by `@mfkit/kit` — validated, but nothing enforces it yet.
+   */
   readonly budgetBytes?: number;
   /**
    * Host-specific shared singletons (e.g. `react-router-dom`). Framework
@@ -115,12 +121,25 @@ export interface MFKitConfig {
   readonly mfes: readonly MFEManifestEntry[];
   /** Shared deps every MFE inherits. Per-MFE entries override individual keys. */
   readonly shared?: SharedDependencyMap;
-  /** Optional bundle budgets. Keys are scope identifiers (e.g. `"shell-initial"`). */
+  /**
+   * Optional bundle budgets. Keys are scope identifiers (e.g. `"shell-initial"`).
+   * @experimental Not yet consumed by `@mfkit/kit` — validated, but nothing enforces it yet.
+   */
   readonly budgets?: Readonly<Record<string, number>>;
-  /** Healing strategy override. Defaults to MFKit's forgiving strategy. */
+  /**
+   * Healing strategy override. Defaults to MFKit's forgiving strategy.
+   * Not read automatically: pass `resolveHealingStrategy(config)` (from
+   * `@mfkit/kit/healing`) to `<MFKitProvider strategy={…}>`.
+   */
   readonly healing?: HealingStrategy;
-  /** Discovery strategy override. Defaults to the manifest-driven strategy. */
+  /**
+   * Discovery strategy override. Defaults to the manifest-driven strategy.
+   * @experimental Not yet consumed by `@mfkit/kit`.
+   */
   readonly discovery?: DiscoveryStrategy;
-  /** Plugins extend any of the pluggable surfaces. Applied in order. */
+  /**
+   * Plugins extend any of the pluggable surfaces. Applied in order. Today only
+   * `frameworkAdapters` is consumed; see `MFKitPlugin` for the rest.
+   */
   readonly plugins?: readonly MFKitPlugin[];
 }

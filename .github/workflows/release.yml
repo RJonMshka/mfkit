@@ -4,10 +4,24 @@ on:
   push:
     branches: [main]
 
+# Never run two publishes at once; a queued run picks up the latest main.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    # Scoped here rather than raising the repo-wide default to write: the
+    # changesets action pushes the changeset-release/main branch and opens the
+    # version PR with GITHUB_TOKEN, and every other workflow stays read-only.
+    # `id-token: write` lets npm sign provenance attestations, so consumers can
+    # verify each tarball was built by this workflow from this repo.
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -19,7 +33,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
@@ -35,3 +49,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"

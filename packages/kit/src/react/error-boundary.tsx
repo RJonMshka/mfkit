@@ -1,7 +1,11 @@
 // Error boundary for the outlet. Must be a class component — React's only
-// supported boundary mechanism. Catches synchronous render-time errors thrown
-// from inside a successfully-mounted MFE; load/mount errors come through the
-// controller's state machine and never reach the boundary.
+// supported boundary mechanism. Scope is narrower than it looks: it catches
+// render errors from the outlet's own React subtree (consumer-supplied slots).
+// It does NOT see errors from inside a mounted MFE — every MFE renders into
+// its own root (a separate React root, a Svelte/Vue app, an Angular platform),
+// and errors never propagate across roots. Load/mount failures come through
+// the controller's state machine; post-mount runtime errors are currently
+// unobserved by the kit (tracked in docs/project-review-2026-10.md).
 
 import { Component, type ErrorInfo, type ReactNode } from "react";
 

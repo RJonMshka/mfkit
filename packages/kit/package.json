@@ -1,16 +1,33 @@
 {
   "name": "@mfkit/kit",
-  "version": "0.0.0",
-  "description": "MFKit runtime — Vite config generation, lifecycle contract, self-healing primitives, <MFKitOutlet>.",
+  "version": "0.1.0-alpha.0",
+  "description": "MFKit runtime \u2014 Vite config generation, lifecycle contract, self-healing primitives, <MFKitOutlet>.",
+  "keywords": [
+    "mfkit",
+    "module-federation",
+    "microfrontends",
+    "micro-frontends",
+    "vite",
+    "polyglot",
+    "react",
+    "svelte",
+    "vue",
+    "angular",
+    "lit",
+    "self-healing"
+  ],
   "license": "MIT",
   "author": "Rajat Kumar",
   "repository": {
     "type": "git",
-    "url": "https://github.com/RJonMshka/mfkit.git",
+    "url": "git+https://github.com/RJonMshka/mfkit.git",
     "directory": "packages/kit"
   },
   "homepage": "https://github.com/RJonMshka/mfkit/tree/main/packages/kit#readme",
   "bugs": "https://github.com/RJonMshka/mfkit/issues",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "type": "module",
   "sideEffects": false,
   "main": "./dist/index.js",
@@ -52,6 +69,7 @@
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
+    "test:coverage": "vitest run --coverage --passWithNoTests",
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
@@ -98,11 +116,15 @@
     "@analogjs/vite-plugin-angular": "^1.16.0",
     "@module-federation/vite": "^1.5.0",
     "@sveltejs/vite-plugin-svelte": "^5.0.0",
-    "@types/node": "^20.0.0",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^22.0.0",
     "@types/react": "^18.3.20",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.0",
     "@vitejs/plugin-vue": "^5.2.0",
+    "happy-dom": "^20.14.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "tsup": "^8.4.0",
     "typescript": "^5.8.3",
     "vite": "^6.0.0",

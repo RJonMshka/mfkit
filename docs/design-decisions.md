@@ -111,7 +111,7 @@ production.
 **Where it lives:**
 - `deriveMFE()` and `deriveShell()` are pure functions that return both the
   resolved value *and* an `inferred: InferredField[]` list of what was filled
-  in (`source: "adapter-default" | "auto-assigned" | "kit-default" |
+  in (`source: "auto-assigned" | "kit-default" |
   "fallback-origin"`).
 - `logInferred()` prints one block per scope per process, only when
   `mode === "dev"`.
