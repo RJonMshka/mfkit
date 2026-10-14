@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@mfkit/kit": "workspace:*",
-    "svelte": "^5.0.0"
+    "svelte": "^5.57.2"
   },
   "devDependencies": {
     "@module-federation/vite": "^1.5.0",
