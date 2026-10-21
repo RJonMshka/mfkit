@@ -126,10 +126,10 @@
     "happy-dom": "^20.14.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "tsup": "^8.4.0",
-    "typescript": "^5.8.3",
+    "tsup": "^9.0.0",
+    "typescript": "^7.0.2",
     "vite": "^6.0.0",
-    "vitest": "^3.2.7"
+    "vitest": "^5.0.5"
   },
   "publishConfig": {
     "access": "public"
